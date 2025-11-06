@@ -16,30 +16,29 @@ Example:
 """
 
 import os
-import sys
-import glob
-import math
-import argparse
+import numpy as np
 
-from utility import (
+from src.utility import (
     parse_and_process_arguments,
-    sort_lists_by_first,
     load_config,
 )
 
-from simulation_io import extract_uamp_property, extract_odb_data
+from src.simulation_io import extract_uamp_property, extract_odb_result
 
 
-def main(job_ids, sim_type, config):
+def main(job_ids, sim_type, config, output_path):
     """
     Main function to extract simulation data and write it to a CSV file.
 
     Args:
         job_ids (list): A list of job IDs to process.
     """
-    control_variable_array, rf1_array, crd3_array, vx_array = [], [], [], []
+    src_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "src")
 
-    rf3, ia = None, None
+    os.makedirs(output_path, exist_ok=True)
+
+    control_variable_list = []
+    result_list = []
 
     for i, job_id in enumerate(job_ids):
         job_id_str = str(job_id)
@@ -48,49 +47,56 @@ def main(job_ids, sim_type, config):
 
         try:
             control_variable = extract_uamp_property(job_id_str, sim_type, config)
-            rf3_val, rf1_val, ia_val, coord3_val, vx_val = extract_odb_data(
-                job_id_str, sim_type, config
+            extract_data = extract_odb_result(
+                src_dir, output_path, job_id_str, sim_type, config
             )
-
-            if any(v is None for v in [rf3_val, rf1_val, ia_val, coord3_val, vx_val]):
-                print("  Skipping job ID {} due to missing data.".format(job_id_str))
-                continue
-
-            rf3, ia = rf3_val, ia_val
-            control_variable_array.append(control_variable)
-            rf1_array.append(rf1_val)
-            crd3_array.append(coord3_val)
-            vx_array.append(vx_val)
+            control_variable_list.append(control_variable)
+            result_list.append(extract_data)
 
         except (UserWarning, Exception) as e:
             print("  Skipping job ID {} due to an error: {}".format(job_id_str, e))
             continue
 
-    if not control_variable_array:
+    if not control_variable_list:
         print("No data was extracted. Exiting.")
         return
 
-    sorted_lists = sort_lists_by_first(
-        control_variable_array, rf1_array, crd3_array, vx_array
+    # Flatten lists and sort by control variable
+    cv_array = np.array(control_variable_list)
+
+    FZ_array = np.array([value for list in result_list for value in list["RF3"]])
+    FX_array = np.array([value for list in result_list for value in list["RF1"]])
+    FY_array = np.array([value for list in result_list for value in list["RF2"]])
+
+    MX_array = np.array([value for list in result_list for value in list["TM1"]])
+    MZ_array = np.array([value for list in result_list for value in list["TM3"]])
+
+    IA_array = np.array([value for list in result_list for value in list["UR1"]])
+    LR_array = np.array([value for list in result_list for value in list["COOR3"]])
+
+    VX_array = np.array([value for list in result_list for value in list["V1"]])
+    VY_array = np.array([value for list in result_list for value in list["V2"]])
+
+    simulation_data_file = (
+        f"{sim_type}_Sweep_{FZ_array[0]:.0f}N_{IA_array[0]:.0f}deg.csv"
     )
-
-    control_variable_array, rf1_array, crd3_array, vx_array = sorted_lists
-
-    simulation_data_file = "{}_Sweep_{:.0f}N_{:.0f}deg.csv".format(sim_type, rf3, ia)
     print('  Formatting and writing data to "{}"'.format(simulation_data_file))
 
-    cwd = os.getcwd()
+    with open(os.path.join(output_path, simulation_data_file), "w") as disp_file:
+        disp_file.write("Slip, FX, FY, MX, MZ, LR, VX, VY\n")
 
-    with open(os.path.join(cwd, simulation_data_file), "w") as disp_file:
-        disp_file.write("Control_Variable, FX, LR, VX\n")
-
-        for i in range(len(control_variable_array)):
+        # write the above numpy arrays to csv file
+        for i in range(len(cv_array)):
             disp_file.write(
-                "{sr:8.5f}, {rf1:12.5f}, ".format(
-                    sr=control_variable_array[i], rf1=rf1_array[i]
-                )
-                + "{crd3:12.5f}, {vx:12.5f}\n".format(
-                    crd3=crd3_array[i], vx=vx_array[i]
+                "{:4.1f},{:6.2f},{:6.2f},{:6.2f},{:6.2f},{:6.2f},{:6.2f},{:6.2f}\n".format(
+                    cv_array[i],
+                    FX_array[i],
+                    FY_array[i],
+                    MX_array[i],
+                    MZ_array[i],
+                    LR_array[i],
+                    VX_array[i],
+                    VY_array[i],
                 )
             )
 
@@ -99,7 +105,10 @@ def main(job_ids, sim_type, config):
 
 
 if __name__ == "__main__":
+    # parse command-line arguments
+    unique_list, sim_type, output_path = parse_and_process_arguments()
 
     config = load_config()
-    unique_list, sim_type = parse_and_process_arguments()
-    main(unique_list, sim_type)
+    main(unique_list, sim_type, config, output_path)
+
+    print("All done!")

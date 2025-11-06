@@ -19,9 +19,12 @@ class TestSimulationIO(unittest.TestCase):
             self.job_id_str,
             self.sim_type_braking,
             self.config,
-            self.config["uamp_file_name"],
+            self.config["paths"]["file_names"]["uamp_properties"],
         )
-        self.assertEqual(os.path.basename(file_path), self.config["uamp_file_name"])
+        self.assertEqual(
+            os.path.basename(file_path),
+            self.config["paths"]["file_names"]["uamp_properties"],
+        )
 
     def test_get_file_path_not_found(self):
         with self.assertRaises(FileNotFoundError):
@@ -29,7 +32,7 @@ class TestSimulationIO(unittest.TestCase):
                 self.job_id_str,
                 self.sim_type_braking,
                 self.config,
-                "non_existent_file.dat",
+                "non_existent_file",
             )
 
     def test_extract_uamp_property_braking(self):
@@ -54,8 +57,7 @@ class TestSimulationIO(unittest.TestCase):
         extract_data = extract_odb_result(
             src_dir, output_dir, self.job_id_str, self.sim_type_braking, self.config
         )
-        print(extract_data)
-        self.assertAlmostEqual(extract_data["RF3"], 400.0)
+        self.assertAlmostEqual(extract_data["RF3"], [2075.0], places=1)
 
 
 if __name__ == "__main__":

@@ -45,9 +45,9 @@ class TestUtility(unittest.TestCase):
     def test_load_config(self):
         config = load_config()
         self.assertIsInstance(config, dict)
-        self.assertIn("job_folder", config)
-        self.assertIn("solver_sub_folder", config)
-        self.assertEqual(config["job_folder"]["win32"], "./data")
+        self.assertIn("paths", config)
+        self.assertIn("abaqus_settings", config)
+        self.assertIn("extraction_details", config)
 
     def test_parse_and_process_arguments(self):
         # Test valid input
@@ -55,7 +55,7 @@ class TestUtility(unittest.TestCase):
         sys_argv_orig = sys.argv
         try:
             sys.argv = test_args
-            result_list, sim_type = parse_and_process_arguments()
+            result_list, sim_type, output_path = parse_and_process_arguments()
             self.assertEqual(result_list, [1, 2, 3])
             self.assertEqual(sim_type, "Braking")
         finally:

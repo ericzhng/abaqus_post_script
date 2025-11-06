@@ -137,14 +137,27 @@ def parse_and_process_arguments():
         help="The type of simulation to post-process (e.g., 'Braking', 'Cornering').\n    The input is case-insensitive.",
     )
 
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=str,
+        required=False,
+        help="The output directory to host results.",
+    )
+
     args = parser.parse_args()
     input_str = args.input
     sim_type = args.type
 
+    if args.output is None:
+        output_path = os.getcwd()
+    else:
+        output_path = args.output
+
     try:
         result_list = parse_matlab_array_input(input_str)
         unique_list = list(set(result_list))
-        return unique_list, sim_type
+        return unique_list, sim_type, output_path
 
     except ValueError as e:
         print("\nError processing input: {}\n".format(e))

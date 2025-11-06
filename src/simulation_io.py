@@ -37,11 +37,16 @@ def _get_file_path(job_id_str, sim_type, config, file_name):
         IOError: If no file matching the constructed pattern is found.
     """
     platform = "win32" if "win32" in sys.platform.lower() else "linux"
-    job_folder = config["job_folder"][platform]
+    job_folder = config["paths"]["job_folder"][platform]
 
-    solver_sub_folder = config["solver_sub_folder"].format(sim_type=sim_type.title())
+    solver_sub_folder = config["paths"]["solver_sub_folder_pattern"].format(
+        sim_type=sim_type.title()
+    )
     file_match_pattern = os.path.join(
-        job_folder, job_id_str, solver_sub_folder, file_name
+        job_folder,
+        job_id_str,
+        solver_sub_folder,
+        file_name,
     )
 
     # Find files matching the pattern.
@@ -67,10 +72,13 @@ def extract_uamp_property(job_id_str, sim_type, config):
         float: The extracted slip ratio (for braking) or slip angle in degrees (for cornering).
     """
     uamp_file_path = _get_file_path(
-        job_id_str, sim_type, config, config["uamp_file_name"]
+        job_id_str,
+        sim_type,
+        config,
+        config["paths"]["file_names"]["uamp_properties"],
     )
     uamp_properties = {}
-    uamp_keys = config["uamp_keys"][sim_type.lower()]
+    uamp_keys = config["extraction_details"]["uamp_keys"][sim_type.lower()]
 
     with open(uamp_file_path, "r") as f:
         lines = f.readlines()
@@ -154,6 +162,7 @@ def extract_odb_result(src_dir, output_dir, job_id_str, str_type, config):
             capture_output=True,
             text=True,  # Decodes stdout/stderr as text
         )
+        os.remove(temp_config_path)
         print("Command executed successfully.")
         print(f"Stdout: {result.stdout}")
 
@@ -172,6 +181,7 @@ def extract_odb_result(src_dir, output_dir, job_id_str, str_type, config):
     try:
         with open(output_path, "r") as f:
             data = json.load(f)
+        os.remove(output_path)
     except FileNotFoundError:
         print(
             f"Error: Output file not found at {output_path}. Abaqus script may have failed silently or in an unexpected way."
