@@ -12,6 +12,55 @@ import argparse
 import os
 import sys
 import yaml
+import glob
+
+
+def get_file_path(job_id_str, sim_type, config, file_name=None, file_name_key=None):
+    """
+    Constructs the file path for a given simulation file based on configuration.
+
+    This helper function builds a file path pattern using the job ID, simulation
+    type, and configuration details, then searches for a matching file.
+
+    Args:
+        job_id_str (str): The job ID.
+        sim_type (str): The simulation type (e.g., 'Braking', 'Cornering').
+        config (dict): A dictionary containing configuration parameters.
+        file_name (str, optional): The name of the file to locate. Defaults to None.
+        file_name_key (str, optional): The key for the file name in the config. Defaults to None.
+
+    Returns:
+        str: The absolute path to the located file.
+
+    Raises:
+        FileNotFoundError: If no file matching the constructed pattern is found.
+        ValueError: If neither file_name nor file_name_key is provided.
+    """
+    if file_name is None and file_name_key is None:
+        raise ValueError("Either file_name or file_name_key must be provided.")
+
+    platform = "win32" if "win32" in sys.platform.lower() else "linux"
+    job_folder = config["paths"]["job_folder"][platform]
+
+    if file_name_key:
+        file_name = config["paths"]["file_names"][file_name_key]
+
+    solver_sub_folder = config["paths"]["solver_sub_folder_pattern"].format(
+        sim_type=sim_type.title()
+    )
+
+    file_match_pattern = os.path.join(
+        job_folder,
+        job_id_str,
+        solver_sub_folder,
+        file_name,
+    )
+
+    file_path_list = glob.glob(file_match_pattern)
+
+    if not file_path_list:
+        raise FileNotFoundError(f"No file found for pattern: {file_match_pattern}")
+    return os.path.abspath(file_path_list[0])
 
 
 def generate_range_list(start, end):
@@ -61,9 +110,7 @@ def parse_matlab_array_input(input_str):
                 range_parts = element.split(":")
                 if len(range_parts) != 2:
                     raise ValueError(
-                        "Range part '{}' must contain exactly one colon.".format(
-                            element
-                        )
+                        f"Range part '{element}' must contain exactly one colon."
                     )
                 b = int(range_parts[0].strip())
                 c = int(range_parts[1].strip())
@@ -73,7 +120,7 @@ def parse_matlab_array_input(input_str):
                 combined_list.append(a)
         except ValueError:
             raise ValueError(
-                "Invalid integer format in element '{}'. ".format(element)
+                f"Invalid integer format in element '{element}'. "
                 + "All numbers must be valid integers."
             )
     return combined_list
@@ -108,12 +155,15 @@ def load_config():
         return yaml.safe_load(f)
 
 
-def parse_and_process_arguments():
+def parse_arguments():
     """
     Sets up the command-line parser and processes user input.
 
     Returns:
-        list: A unique, sorted list of integers from the input string.
+        tuple: A tuple containing:
+            - list: A unique, sorted list of integers from the input string.
+            - str: The simulation type.
+            - str: The output path.
     """
     parser = argparse.ArgumentParser(
         description="A CLI tool that processes a MATLAB-style input string to generate a list of integers.",
@@ -156,9 +206,9 @@ def parse_and_process_arguments():
 
     try:
         result_list = parse_matlab_array_input(input_str)
-        unique_list = list(set(result_list))
+        unique_list = sorted(list(set(result_list)))
         return unique_list, sim_type, output_path
 
     except ValueError as e:
-        print("\nError processing input: {}\n".format(e))
+        print(f"\nError processing input: {e}\n")
         sys.exit(1)

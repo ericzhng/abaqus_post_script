@@ -9,20 +9,16 @@ Author: Eric Zhang (zhanghui@bfusa.com)
 Date: Nov. 5, 2025
 
 Example Usage:
-    /app/abaqusnet/Commands/abq2023hf3 python post_simulation_data.py -i "[<list_of_ids>]" -t "Braking"
+    /app/abaqusnet/Commands/abq2023hf3 python post_simulation_data.py -i "[<list_of_ids>]" -t "Braking" -o "/path/to/output"
 
 Example:
-    /app/abaqusnet/Commands/abq2023hf3 python post_simulation_data.py -i "[142872, 142879:142894]" -t "Braking"
+    /app/abaqusnet/Commands/abq2023hf3 python post_simulation_data.py -i "[142872, 142879:142894]" -t "Braking" -o "./output"
 """
 
 import os
 import numpy as np
 
-from src.utility import (
-    parse_and_process_arguments,
-    load_config,
-)
-
+from src.utility import parse_arguments, load_config
 from src.simulation_io import extract_uamp_property, extract_odb_result
 
 
@@ -30,75 +26,99 @@ def main(job_ids, sim_type, config, output_path):
     """
     Main function to extract simulation data and write it to a CSV file.
 
+    This function iterates through a list of job IDs, extracts simulation data
+    for each, and compiles the results. The extracted data is then sorted and
+    saved to a CSV file in the specified output directory.
+
     Args:
         job_ids (list): A list of job IDs to process.
+        sim_type (str): The type of simulation (e.g., 'Braking', 'Cornering').
+        config (dict): Configuration dictionary with paths and settings.
+        output_path (str): The directory where the output CSV file will be saved.
     """
     src_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "src")
-
     os.makedirs(output_path, exist_ok=True)
 
-    control_variable_list = []
-    result_list = []
-
-    for i, job_id in enumerate(job_ids):
+    results = []
+    for job_id in job_ids:
         job_id_str = str(job_id)
-        print("=================================")
-        print("Extracting data for {}".format(job_id_str))
+        print(f"=================================")
+        print(f"Extracting data for {job_id_str}")
 
         try:
+            # Extract control variable and results from the simulation output
             control_variable = extract_uamp_property(job_id_str, sim_type, config)
             extract_data = extract_odb_result(
                 src_dir, output_path, job_id_str, sim_type, config
             )
-            control_variable_list.append(control_variable)
-            result_list.append(extract_data)
 
-        except (UserWarning, Exception) as e:
-            print("  Skipping job ID {} due to an error: {}".format(job_id_str, e))
-            continue
+            # Append all relevant data for this job_id as a tuple
+            results.append(
+                (
+                    control_variable,
+                    extract_data["RF1"][0],  # FX
+                    extract_data["RF2"][0],  # FY
+                    extract_data["TM1"][0],  # MX
+                    extract_data["TM3"][0],  # MZ
+                    extract_data["COOR3"][0],  # LR
+                    extract_data["V1"][0],  # VX
+                    extract_data["V2"][0],  # VY
+                    extract_data["RF3"][0],  # FZ
+                    extract_data["UR1"][0],  # IA
+                )
+            )
 
-    if not control_variable_list:
+        except FileNotFoundError as e:
+            print(f"  Skipping job ID {job_id_str} due to missing file: {e}")
+        except (UserWarning, ValueError, KeyError) as e:
+            print(f"  Skipping job ID {job_id_str} due to a data error: {e}")
+        except Exception as e:
+            print(f"  Skipping job ID {job_id_str} due to an unexpected error: {e}")
+
+    if not results:
         print("No data was extracted. Exiting.")
         return
 
-    # Flatten lists and sort by control variable
-    cv_array = np.array(control_variable_list)
+    # Define the data structure for the structured numpy array
+    dtype = [
+        ("Slip", "f8"),
+        ("FX", "f8"),
+        ("FY", "f8"),
+        ("MX", "f8"),
+        ("MZ", "f8"),
+        ("LR", "f8"),
+        ("VX", "f8"),
+        ("VY", "f8"),
+        ("FZ", "f8"),
+        ("IA", "f8"),
+    ]
+    data_array = np.array(results, dtype=dtype)
 
-    FZ_array = np.array([value for list in result_list for value in list["RF3"]])
-    FX_array = np.array([value for list in result_list for value in list["RF1"]])
-    FY_array = np.array([value for list in result_list for value in list["RF2"]])
+    # Sort the array by the control variable ('Slip')
+    data_array = np.sort(data_array, order="Slip")
 
-    MX_array = np.array([value for list in result_list for value in list["TM1"]])
-    MZ_array = np.array([value for list in result_list for value in list["TM3"]])
+    # Prepare for file writing
+    fz_val = data_array["FZ"][0]
+    ia_val = data_array["IA"][0]
+    simulation_data_file = f"{sim_type}_Sweep_{fz_val:.0f}N_{ia_val:.0f}deg.csv"
+    output_file_path = os.path.join(output_path, simulation_data_file)
 
-    IA_array = np.array([value for list in result_list for value in list["UR1"]])
-    LR_array = np.array([value for list in result_list for value in list["COOR3"]])
+    print(f'  Formatting and writing data to "{simulation_data_file}"')
 
-    VX_array = np.array([value for list in result_list for value in list["V1"]])
-    VY_array = np.array([value for list in result_list for value in list["V2"]])
+    # Define header and format for the CSV file
+    header = "Slip,FX,FY,MX,MZ,LR,VX,VY"
+    # Select the columns to be saved, excluding FZ and IA
+    columns_to_save = ["Slip", "FX", "FY", "MX", "MZ", "LR", "VX", "VY"]
 
-    simulation_data_file = (
-        f"{sim_type}_Sweep_{FZ_array[0]:.0f}N_{IA_array[0]:.0f}deg.csv"
+    # Use numpy.savetxt for efficient and clean CSV writing
+    np.savetxt(
+        output_file_path,
+        data_array[columns_to_save],
+        delimiter=",",
+        header=header,
+        comments="",
+        fmt="%.4f",
     )
-    print('  Formatting and writing data to "{}"'.format(simulation_data_file))
-
-    with open(os.path.join(output_path, simulation_data_file), "w") as disp_file:
-        disp_file.write("Slip, FX, FY, MX, MZ, LR, VX, VY\n")
-
-        # write the above numpy arrays to csv file
-        for i in range(len(cv_array)):
-            disp_file.write(
-                "{:4.1f},{:6.2f},{:6.2f},{:6.2f},{:6.2f},{:6.2f},{:6.2f},{:6.2f}\n".format(
-                    cv_array[i],
-                    FX_array[i],
-                    FY_array[i],
-                    MX_array[i],
-                    MZ_array[i],
-                    LR_array[i],
-                    VX_array[i],
-                    VY_array[i],
-                )
-            )
 
     print("=================================")
     print("Data written successfully!")
@@ -106,7 +126,7 @@ def main(job_ids, sim_type, config, output_path):
 
 if __name__ == "__main__":
     # parse command-line arguments
-    unique_list, sim_type, output_path = parse_and_process_arguments()
+    unique_list, sim_type, output_path = parse_arguments()
 
     config = load_config()
     main(unique_list, sim_type, config, output_path)
