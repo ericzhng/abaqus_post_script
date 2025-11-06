@@ -99,17 +99,6 @@ def main(job_ids, sim_type, config):
 
 
 if __name__ == "__main__":
-    try:
-        import debugpy
-
-        debugpy.listen(("localhost", 5678))
-        print("debugpy is listening on port 5678. Waiting for client to attach...")
-        debugpy.wait_for_client()
-        print("Client attached. Debugging started.")
-        debugpy.breakpoint()
-
-    except ImportError:
-        print("debugpy not found. Skipping remote debugger attachment.")
 
     config = load_config()
     unique_list, sim_type = parse_and_process_arguments()

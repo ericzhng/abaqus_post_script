@@ -12,38 +12,46 @@ import os
 import sys
 import glob
 import math
-
-from odbAccess import openOdb
-from utility import upgrade_odb_if_necessary
+import subprocess
+import json
 
 
 def _get_file_path(job_id_str, sim_type, config, file_name):
     """
-    Constructs the file path for a given simulation file.
+    Constructs the file path for a given simulation file based on configuration.
+
+    This helper function builds a file path pattern using the job ID, simulation
+    type, and configuration details, then searches for a matching file.
 
     Args:
         job_id_str (str): The job ID.
-        sim_type (str): The simulation type.
-        config (dict): The configuration dictionary.
-        file_name (str): The name of the file.
+        sim_type (str): The simulation type (e.g., 'Braking', 'Cornering').
+        config (dict): A dictionary containing configuration parameters like
+                       'job_folder' and 'solver_sub_folder'.
+        file_name (str): The name of the file to locate.
 
     Returns:
-        str: The full path to the file.
+        str: The absolute path to the located file.
+
+    Raises:
+        IOError: If no file matching the constructed pattern is found.
     """
     platform = "win32" if "win32" in sys.platform.lower() else "linux"
     job_folder = config["job_folder"][platform]
 
-    solver_sub_folder = config["solver_sub_folder"].format(sim_type=sim_type)
+    solver_sub_folder = config["solver_sub_folder"].format(sim_type=sim_type.title())
     file_match_pattern = os.path.join(
         job_folder, job_id_str, solver_sub_folder, file_name
     )
+
+    # Find files matching the pattern.
     file_path_list = glob.glob(file_match_pattern)
 
     if not file_path_list:
         raise FileNotFoundError(
-            f"No file found for pattern: {file_match_pattern}"
+            "No file found for pattern: {}".format(file_match_pattern)
         )
-    return file_path_list[0]
+    return os.path.abspath(file_path_list[0])
 
 
 def extract_uamp_property(job_id_str, sim_type, config):
@@ -58,9 +66,11 @@ def extract_uamp_property(job_id_str, sim_type, config):
     Returns:
         float: The extracted slip ratio (for braking) or slip angle in degrees (for cornering).
     """
-    uamp_file_path = _get_file_path(job_id_str, sim_type, config, config["uamp_file_name"])
+    uamp_file_path = _get_file_path(
+        job_id_str, sim_type, config, config["uamp_file_name"]
+    )
     uamp_properties = {}
-    uamp_keys = config["uamp_keys"][sim_type]
+    uamp_keys = config["uamp_keys"][sim_type.lower()]
 
     with open(uamp_file_path, "r") as f:
         lines = f.readlines()
@@ -75,91 +85,101 @@ def extract_uamp_property(job_id_str, sim_type, config):
                         try:
                             uamp_properties[key] = float(parts[1].strip())
                         except ValueError:
-                            raise ValueError(f"Could not convert value for {key} to float.")
+                            raise ValueError(
+                                f"Could not convert value for {key} to float."
+                            )
                 else:
                     raise ValueError(f"{key} found, but no properties line followed.")
 
-    if sim_type == "braking":
+    if sim_type.lower() == "braking":
         if "RIMSRY" not in uamp_properties:
-            raise ValueError("RIMSRY not found in uamp-properties.dat file for braking.")
+            raise ValueError(
+                "RIMSRY not found in uamp-properties.dat file for braking."
+            )
         return uamp_properties["RIMSRY"]
-    elif sim_type == "cornering":
+    elif sim_type.lower() == "cornering":
         if "ROADVX" not in uamp_properties or "ROADVY" not in uamp_properties:
-            raise ValueError("ROADVX or ROADVY not found in uamp-properties.dat for cornering.")
+            raise ValueError(
+                "ROADVX or ROADVY not found in uamp-properties.dat for cornering."
+            )
         vx = uamp_properties["ROADVX"]
         vy = uamp_properties["ROADVY"]
-        slip_angle = math.degrees(math.atan2(vy, vx))
+        slip_angle = math.degrees(math.atan2(vy, abs(vx)))
         return slip_angle
     else:
         raise ValueError(f"Unknown sim_type: {sim_type}")
 
 
-def extract_odb_data(job_id_str, str_type, config):
+def extract_odb_result(src_dir, output_dir, job_id_str, str_type, config):
     """
-    Extracts simulation data from an Abaqus ODB file.
-
-    Args:
-        job_id_str (str): The simulation job ID used to locate the ODB file.
-        str_type (str): The type of simulation.
-        config (dict): The configuration dictionary.
-
-    Returns:
-        tuple: A tuple containing the extracted data (RF3, RF1, IA, Coord3, Vx).
+    Extracts simulation data from an Abaqus ODB file by calling a separate script.
     """
-    odb_file_path = _get_file_path(job_id_str, str_type, config, config["odb_file_name"])
+    script_path = os.path.join(src_dir, "abaqus_script.py")
+    output_path = os.path.join(output_dir, f"{str_type}_{job_id_str}_data.json")
 
-    # Upgrade ODB file if necessary
-    odb_file_path_upgraded = upgrade_odb_if_necessary(odb_file_path)
+    # abaqus solver path
+    abaqus_solver_path = config["paths"]["abaqus_solver_path"]
 
-    print(f"  Open odb file: {odb_file_path_upgraded}")
-    curr_odb = openOdb(odb_file_path_upgraded, readOnly=True)
+    # Prepare config as JSON
+    config_json = json.dumps(config)
 
-    print("  extract steps in above odb file")
-    for step_name, step in curr_odb.steps.items():
-        print(f"extract {step_name} in odb file")
+    # save config_json to a temporary json file
+    temp_config_path = os.path.join(output_dir, f"temp_config_{job_id_str}.json")
+    with open(temp_config_path, "w") as f:
+        f.write(config_json)
 
-        try:
-            history_road = step.historyRegions[config["history_regions"]["road"]]
-            vx = history_road.historyOutputs[config["history_outputs"]["road"][0]].data[-1][1]
-            vy = history_road.historyOutputs[config["history_outputs"]["road"][1]].data[-1][1]
-            coord3 = history_road.historyOutputs[config["history_outputs"]["road"][2]].data[-1][1]
-        except KeyError:
-            raise UserWarning("Failed to extract V or COOR3 data from the ODB file.")
+    # Build the command to run the Abaqus script
+    command = [
+        abaqus_solver_path,
+        "python",
+        script_path,
+        "--job_id",
+        job_id_str,
+        "--sim_type",
+        str_type,
+        "--config_path",
+        temp_config_path,
+        "--output_path",
+        output_path,
+    ]
 
-        try:
-            history_road_handle = step.historyRegions[
-                config["history_regions"]["road_handle"]
-            ]
-            rf1 = history_road_handle.historyOutputs[
-                config["history_outputs"]["road_handle"][0]
-            ].data[-1][1]
-            rf3 = (
-                history_road_handle.historyOutputs[
-                    config["history_outputs"]["road_handle"][2]
-                ].data[-1][1]
-                * -1.0
-            )
-        except KeyError:
-            raise UserWarning("Failed to extract RF data from the ODB file.")
+    try:
+        # check=True: raises CalledProcessError on non-zero exit code
+        # capture_output=True: captures stdout and stderr
+        # text=True: decodes output as text (string)
+        result = subprocess.run(
+            command,
+            input=config_json,
+            check=True,
+            capture_output=True,
+            text=True,  # Decodes stdout/stderr as text
+        )
+        print("Command executed successfully.")
+        print(f"Stdout: {result.stdout}")
 
-        try:
-            history_rim_handle = step.historyRegions[
-                config["history_regions"]["rim_handle"]
-            ]
-            ia = round(
-                history_rim_handle.historyOutputs[
-                    config["history_outputs"]["rim_handle"][0]
-                ].data[-1][1]
-                * 180
-                / math.pi,
-                1,
-            )
-        except KeyError:
-            raise UserWarning("Failed to extract UR1 data from the ODB file.")
+    except subprocess.CalledProcessError as e:
+        # 2. Catch the specific error raised by check=True
+        print(f"ERROR: Command failed with return code {e.returncode}")
+        print(f"Stderr: {e.stderr}")
+    except FileNotFoundError:
+        # 3. Catch errors where the command executable itself isn't found
+        print(f"ERROR: The executable '{command[0]}' was not found.")
+    except Exception as e:
+        # Catch any other unexpected errors during execution
+        print(f"An unexpected error occurred during subprocess execution: {e}")
 
-        if rf3 is not None and rf3 < 1000:
-            print(
-                f"  RF3 is too small (RF3 = {rf3:.2f} N). Please check the simulation."
-            )
+    # Read the result file
+    try:
+        with open(output_path, "r") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        print(
+            f"Error: Output file not found at {output_path}. Abaqus script may have failed silently or in an unexpected way."
+        )
+        raise
+    except json.JSONDecodeError:
+        print(f"Error: Could not decode JSON from file {output_path}.")
+        raise
 
-    return rf3, rf1, ia, coord3, vx
+    # os.remove(output_path)
+    return data

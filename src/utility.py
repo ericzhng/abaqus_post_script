@@ -8,10 +8,10 @@ Author: Eric Zhang (zhanghui@bfusa.com)
 Date: Nov. 5, 2025
 """
 
+import argparse
 import os
 import sys
 import yaml
-from odbAccess import isUpgradeRequiredForOdb
 
 
 def generate_range_list(start, end):
@@ -35,7 +35,7 @@ def generate_range_list(start, end):
         return list(range(start, end - 1, -1))
 
 
-def parse_matlab_style_input(input_str):
+def parse_matlab_array_input(input_str):
     """
     Parses a MATLAB-style string (e.g., '[a, b:c, d]') into a list of integers.
 
@@ -61,7 +61,9 @@ def parse_matlab_style_input(input_str):
                 range_parts = element.split(":")
                 if len(range_parts) != 2:
                     raise ValueError(
-                        "Range part '{}' must contain exactly one colon.".format(element)
+                        "Range part '{}' must contain exactly one colon.".format(
+                            element
+                        )
                     )
                 b = int(range_parts[0].strip())
                 c = int(range_parts[1].strip())
@@ -71,8 +73,8 @@ def parse_matlab_style_input(input_str):
                 combined_list.append(a)
         except ValueError:
             raise ValueError(
-                "Invalid integer format in element '{}'. ".format(element) +
-                "All numbers must be valid integers."
+                "Invalid integer format in element '{}'. ".format(element)
+                + "All numbers must be valid integers."
             )
     return combined_list
 
@@ -80,46 +82,6 @@ def parse_matlab_style_input(input_str):
 def case_insensitive_choice(arg_value):
     """Converts the argument value to title case for case-insensitive validation."""
     return arg_value.title()
-
-
-def upgrade_odb_if_necessary(odb_file_name):
-    """
-    Upgrades an Abaqus ODB file to the current version if necessary.
-
-    Args:
-        odb_file_name (str): The path to the ODB file.
-
-    Returns:
-        str: The path to the upgraded ODB file.
-    """
-    odb_base, _ = os.path.splitext(odb_file_name)
-    upgraded_odb_file_name = odb_base + "_upgraded.odb"
-
-    if isUpgradeRequiredForOdb(upgradeRequiredOdbPath=odb_file_name):
-        if not os.path.exists(upgraded_odb_file_name):
-            print("  Upgrading ODB file...")
-            command = [
-                "abaqus",
-                "-upgrade",
-                "-job",
-                odb_base + "_upgraded",
-                "-odb",
-                odb_file_name,
-            ]
-            import subprocess
-            # Using subprocess.call for Python 2.7 compatibility
-            result = subprocess.call(command)
-            if result != 0:
-                print("  ODB upgrade failed with error:")
-                raise RuntimeError("ODB upgrade failed.")
-            else:
-                print("  ODB upgrade successful.")
-        else:
-            print("  Upgraded ODB file already exists.")
-        return upgraded_odb_file_name
-    else:
-        print("  ODB file does not require an upgrade.")
-        return odb_file_name
 
 
 def sort_lists_by_first(list1, *argv):
@@ -141,7 +103,7 @@ def sort_lists_by_first(list1, *argv):
 
 def load_config():
     """Loads the configuration from the config.yaml file."""
-    config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
+    config_path = os.path.join(os.path.dirname(__file__), "..", "config.yaml")
     with open(config_path, "r") as f:
         return yaml.safe_load(f)
 
@@ -153,7 +115,6 @@ def parse_and_process_arguments():
     Returns:
         list: A unique, sorted list of integers from the input string.
     """
-
     parser = argparse.ArgumentParser(
         description="A CLI tool that processes a MATLAB-style input string to generate a list of integers.",
         formatter_class=argparse.RawTextHelpFormatter,
@@ -181,7 +142,7 @@ def parse_and_process_arguments():
     sim_type = args.type
 
     try:
-        result_list = parse_matlab_style_input(input_str)
+        result_list = parse_matlab_array_input(input_str)
         unique_list = list(set(result_list))
         return unique_list, sim_type
 
