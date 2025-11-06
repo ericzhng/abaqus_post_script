@@ -1,86 +1,77 @@
 # ==============================================================================
-# Configuration file for Abaqus post-processing script (post_simulation_data.py)
+# Configuration file for Abaqus post-processing script
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
-# File and Folder Paths
+# 1. Path and Executable Configuration
 # ------------------------------------------------------------------------------
-# Define the base folder for simulation job files based on the operating system.
-job_folder:
-  win32: "C:\\Temp"
-  linux: "/mnt/Pure/jobfolder"
+paths:
+  # Abaqus solver path
+  abaqus_solver_path: "C:\\SIMULIA\\Commands\\abq2023.bat"
 
-# Subfolder pattern for solver files. '{sim_type}' will be replaced by the
-# simulation type (e.g., 'Braking', 'Cornering').
-solver_sub_folder: "step-*-Solver_*_{sim_type}_*"
+  # Base folder for simulation job files based on the operating system.
+  job_folder:
+    win32: "./data"
+    linux: "/mnt/Pure/jobfolder"
 
-# Names of the files to be processed.
-uamp_file_name: "uamp-properties.dat"
-odb_file_name: "main.odb"
-
-# ------------------------------------------------------------------------------
-# ODB History Regions
-# ------------------------------------------------------------------------------
-# Specify the names of node-based history regions in the ODB file.
-history_regions_node:
-  road: "Node PART-1-1.99111004"
-  road_handle: "Node PART-1-1.99111005"
-  rim: "Node PART-1-1.99222001"
-  rim_handle: "Node PART-1-1.99222000"
-  rim_spindle: "Node PART-1-1.99222002"
-
-# Specify the names of element-based history regions in the ODB file.
-history_regions_elem:
-  road_handle_connector: "Element PART-1-1.99111001"
-  rim_handle_connector: "Element PART-1-1.99222000"
-  rim_spindle_connector: "Element PART-1-1.99222001"
+  # Subfolder pattern for solver files. '{sim_type}' is a placeholder.
+  solver_sub_folder_pattern: "step-*-Solver_*{sim_type}*"
+  
+  # Names of the files to be processed.
+  file_names:
+    uamp_properties: "uamp-properties.dat"
+    odb_main: "main.odb"
 
 # ------------------------------------------------------------------------------
-# ODB History Outputs
+# 2. Abaqus Extraction Settings (ODB Processing)
 # ------------------------------------------------------------------------------
-# Define the history output variables to be extracted from the specified regions.
-history_outputs:
-  road:
-    - V1
-    - V2
-    - COOR3
-  road_handle:
-    - RF1
-    - RF2
-    - RF3
-    - TM1
-    - TM3
-  rim_handle:
-    - UR1
+abaqus_settings:
+  # ODB History Regions: Key is the internal name, value is the ODB path string.
+  history_regions:
+    # Node-based regions
+    road: "Node PART-1-1.99111004"
+    road_handle: "Node PART-1-1.99111005"
+    rim: "Node PART-1-1.99222001"
+    rim_handle: "Node PART-1-1.99222000"
+    rim_spindle: "Node PART-1-1.99222002"
+    # Element-based regions
+    road_handle_connector: "Element PART-1-1.99111001"
+    rim_handle_connector: "Element PART-1-1.99222000"
+    rim_spindle_connector: "Element PART-1-1.99222001"
+
+  # ODB History Outputs: Defines variables to extract per region.
+  history_outputs:
+    road:
+      - V1
+      - V2
+      - COOR3
+    road_handle:
+      - RF1
+      - RF2
+      - RF3
+      - TM1
+      - TM3
+    rim_handle:
+      - UR1
+
+  # History Step Options (Refactored): Defines which step option is used for which simulation.
+  history_step_selection:
+    # List of *available* step options (informational only, can be removed if not needed by the script)
+    # available_options: [first, last, all, all_but_first]
+    
+    # Specific option to use for each simulation type (This replaces 'use_option' and the original 'history_steps_options')
+    sim_type_mapping:
+      braking: last
+      cornering: last
 
 # ------------------------------------------------------------------------------
-# ODB History Steps
+# 3. UAMP Property Extraction Details
 # ------------------------------------------------------------------------------
-# Define which steps to process for history data extraction.
-# - last: Only the last step.
-# - all: All steps.
-# - all_not_first: All steps except the first one.
-history_steps:
-  - last
-  - all
-  - all_not_first
-
-# ------------------------------------------------------------------------------
-# Results Extraction Options
-# ------------------------------------------------------------------------------
-# Specify which history step option to use for different simulation types.
-use_option:
-  braking: last
-  cornering: last
-
-# ------------------------------------------------------------------------------
-# UAMP Property Extraction
-# ------------------------------------------------------------------------------
-# Define the keys to be extracted from the uamp-properties.dat file for each
-# simulation type. These are used to calculate slip ratio and slip angle.
-uamp_keys:
-  braking:
-    - RIMSRY  # For slip ratio
-  cornering:
-    - ROADVX  # For slip angle calculation
-    - ROADVY  # For slip angle calculation
+extraction_details:
+  # UAMP Property Extraction: Define keys to extract for calculation (slip ratio/angle).
+  uamp_keys:
+    braking:
+      - RIMSRY
+    cornering:
+      - ROADVX
+      - ROADVY
