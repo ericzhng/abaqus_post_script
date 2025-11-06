@@ -40,10 +40,12 @@ def main(job_ids, sim_type, config, output_path):
     os.makedirs(output_path, exist_ok=True)
 
     results = []
+    print("=================================\n")
+    print(f"Starting data extraction for {len(job_ids)} jobs...")
+
     for job_id in job_ids:
         job_id_str = str(job_id)
-        print(f"=================================")
-        print(f"Extracting data for {job_id_str}")
+        print(f"  Processing job ID: {job_id_str}")
 
         try:
             # Extract control variable and results from the simulation output
@@ -67,19 +69,24 @@ def main(job_ids, sim_type, config, output_path):
                     extract_data["UR1"][0],  # IA
                 )
             )
+            print(f"  Successfully extracted data for job ID: {job_id_str}")
 
         except FileNotFoundError as e:
-            print(f"  Skipping job ID {job_id_str} due to missing file: {e}")
+            print(f"  [WARNING] Skipping job ID {job_id_str}: File not found - {e}")
         except (UserWarning, ValueError, KeyError) as e:
-            print(f"  Skipping job ID {job_id_str} due to a data error: {e}")
+            print(f"  [WARNING] Skipping job ID {job_id_str}: Data error - {e}")
         except Exception as e:
-            print(f"  Skipping job ID {job_id_str} due to an unexpected error: {e}")
+            print(f"  [ERROR] Skipping job ID {job_id_str}: Unexpected error - {e}")
+
+    print("\nFinished data extraction.")
+    print("=================================\n")
 
     if not results:
         print("No data was extracted. Exiting.")
         return
 
     # Define the data structure for the structured numpy array
+    print("Processing and sorting extracted data...")
     dtype = [
         ("Slip", "f8"),
         ("FX", "f8"),
@@ -96,6 +103,7 @@ def main(job_ids, sim_type, config, output_path):
 
     # Sort the array by the control variable ('Slip')
     data_array = np.sort(data_array, order="Slip")
+    print("Data sorted successfully by 'Slip'.")
 
     # Prepare for file writing
     fz_val = data_array["FZ"][0]
@@ -103,7 +111,7 @@ def main(job_ids, sim_type, config, output_path):
     simulation_data_file = f"{sim_type}_Sweep_{fz_val:.0f}N_{ia_val:.0f}deg.csv"
     output_file_path = os.path.join(output_path, simulation_data_file)
 
-    print(f'  Formatting and writing data to "{simulation_data_file}"')
+    print(f'\nFormatting and writing data to "{simulation_data_file}"...')
 
     # Define header and format for the CSV file
     header = "Slip,FX,FY,MX,MZ,LR,VX,VY"
@@ -120,15 +128,30 @@ def main(job_ids, sim_type, config, output_path):
         fmt="%.4f",
     )
 
-    print("=================================")
-    print("Data written successfully!")
+    print("=================================\n")
+    print("Workflow completed successfully!")
+    print(f"Output file saved to: {output_file_path}")
 
 
 if __name__ == "__main__":
-    # parse command-line arguments
-    unique_list, sim_type, output_path = parse_arguments()
+    print("=================================")
+    print("      ABAQUS POST-PROCESSING       ")
+    print("=================================")
 
-    config = load_config()
-    main(unique_list, sim_type, config, output_path)
+    try:
+        # Parse command-line arguments
+        unique_list, sim_type, output_path = parse_arguments()
 
-    print("All done!")
+        # Load configuration
+        config = load_config()
+
+        # Run the main post-processing function
+        main(unique_list, sim_type, config, output_path)
+
+    except Exception as e:
+        print(f"[ERROR] A critical error occurred: {e}")
+
+    finally:
+        print("\n=================================")
+        print("  All operations have concluded.   ")
+        print("=================================")

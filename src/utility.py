@@ -150,6 +150,7 @@ def sort_lists_by_first(list1, *argv):
 
 def load_config():
     """Loads the configuration from the config.yaml file."""
+    print("Loading configuration from config.yaml...")
     config_path = os.path.join(os.path.dirname(__file__), "..", "config.yaml")
     with open(config_path, "r") as f:
         return yaml.safe_load(f)
@@ -207,8 +208,9 @@ def parse_arguments():
     try:
         result_list = parse_matlab_array_input(input_str)
         unique_list = sorted(list(set(result_list)))
+        print("Successfully parsed and validated arguments.")
         return unique_list, sim_type, output_path
 
     except ValueError as e:
-        print(f"\nError processing input: {e}\n")
+        print(f"\n[ERROR] Invalid input provided: {e}\n")
         sys.exit(1)

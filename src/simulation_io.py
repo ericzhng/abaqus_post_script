@@ -28,12 +28,14 @@ def extract_uamp_property(job_id_str, sim_type, config):
     Returns:
         float: The extracted slip ratio or slip angle in degrees.
     """
+    print(f"  Extracting UAMP property for job ID: {job_id_str}")
     uamp_file_path = get_file_path(
         job_id_str,
         sim_type,
         config,
         file_name_key="uamp_properties",
     )
+    print(f"    Reading UAMP properties from: {uamp_file_path}")
     uamp_properties = {}
     uamp_keys = config["extraction_details"]["uamp_keys"][sim_type.lower()]
 
@@ -48,6 +50,7 @@ def extract_uamp_property(job_id_str, sim_type, config):
                 if len(parts) > 1:
                     try:
                         uamp_properties[key] = float(parts[1].strip())
+                        print(f"      Extracted {key}: {uamp_properties[key]}")
                     except ValueError:
                         raise ValueError(f"Could not convert value for {key} to float.")
                 else:
@@ -88,11 +91,12 @@ def extract_odb_result(src_dir, output_dir, job_id_str, sim_type, config):
     Returns:
         dict: The data extracted from the ODB file.
     """
+    print("  --------------------------------------------------")
+    print(f"  Executing Abaqus script for job ID: {job_id_str}")
     script_path = os.path.join(src_dir, "abaqus_script.py")
     output_path = os.path.join(output_dir, f"{sim_type}_{job_id_str}_data.json")
     temp_config_path = os.path.join(output_dir, f"temp_config_{job_id_str}.json")
 
-    # Save config to a temporary JSON file to be passed to the Abaqus script
     with open(temp_config_path, "w") as f:
         json.dump(config, f)
 
@@ -110,34 +114,36 @@ def extract_odb_result(src_dir, output_dir, job_id_str, sim_type, config):
         output_path,
     ]
 
+    print(f"    Command: {' '.join(command)}")
+
     try:
         result = subprocess.run(command, check=True, capture_output=True, text=True)
-        print("Abaqus script executed successfully.")
-        print(f"Stdout: {result.stdout}")
+        print("    Abaqus script executed successfully.")
+        if result.stdout:
+            print(f"    Stdout:\n{result.stdout}")
     except subprocess.CalledProcessError as e:
-        print(f"ERROR: Abaqus script failed with return code {e.returncode}")
-        print(f"Stderr: {e.stderr}")
+        print(f"    [ERROR] Abaqus script failed with return code {e.returncode}")
+        if e.stderr:
+            print(f"    Stderr:\n{e.stderr}")
         raise
     except FileNotFoundError:
-        print(f"ERROR: The executable '{command[0]}' was not found.")
+        print(f"    [ERROR] The executable '{command[0]}' was not found.")
         raise
     finally:
-        # Clean up the temporary config file
         if os.path.exists(temp_config_path):
             os.remove(temp_config_path)
+        print("  --------------------------------------------------")
 
-    # Read the result file from the Abaqus script
     try:
         with open(output_path, "r") as f:
             data = json.load(f)
     except FileNotFoundError:
-        print(f"Error: Output file not found at {output_path}.")
+        print(f"  [ERROR] Output file not found at {output_path}.")
         raise
     except json.JSONDecodeError:
-        print(f"Error: Could not decode JSON from file {output_path}.")
+        print(f"  [ERROR] Could not decode JSON from file {output_path}.")
         raise
     finally:
-        # Clean up the output file
         if os.path.exists(output_path):
             os.remove(output_path)
 

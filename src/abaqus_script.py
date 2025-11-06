@@ -76,6 +76,11 @@ def _get_file_path(job_id_str, sim_type, config, file_name_key):
     return os.path.abspath(file_path_list[0])
 
 
+def _log_info(message, level="INFO"):
+    """Prints a formatted log message."""
+    print("[{}] {}".format(level, message))
+
+
 def _upgrade_odb_if_needed(odb_file_name):
     """
     Upgrades an Abaqus ODB file to the current version if outdated.
@@ -85,13 +90,13 @@ def _upgrade_odb_if_needed(odb_file_name):
     runs the Abaqus upgrade utility. An upgraded file with the `_upgraded`
     suffix is created.
     """
+    _log_info("Checking if ODB upgrade is required for: {}".format(odb_file_name))
     odb_base, _ = os.path.splitext(odb_file_name)
     upgraded_odb_file_name = odb_base + "_upgraded.odb"
 
     if isUpgradeRequiredForOdb(upgradeRequiredOdbPath=odb_file_name):
-        # If the upgraded file doesn't already exist, run the upgrade utility.
         if not os.path.exists(upgraded_odb_file_name):
-            print("  Upgrading ODB file...")
+            _log_info("Upgrading ODB file...", level="ACTION")
             command = [
                 "abaqus",
                 "-upgrade",
@@ -104,12 +109,12 @@ def _upgrade_odb_if_needed(odb_file_name):
             if result != 0:
                 raise RuntimeError("ODB upgrade failed.")
             else:
-                print("  ODB upgrade successful.")
+                _log_info("ODB upgrade successful.")
         else:
-            print("  Upgraded ODB file already exists.")
+            _log_info("Upgraded ODB file already exists.")
         return upgraded_odb_file_name
     else:
-        print("  ODB file does not require an upgrade.")
+        _log_info("ODB file is up-to-date.")
         return odb_file_name
 
 
@@ -121,15 +126,19 @@ def extract_odb_data(job_id_str, sim_type, config):
     if necessary, and then extracting key data points (forces, coordinates, etc.)
     based on the provided configuration.
     """
-    odb_file_path = _get_file_path(job_id_str, sim_type, config, "odb_main")
+    _log_info("Starting ODB data extraction for Job ID: {}".format(job_id_str))
+    
+    try:
+        odb_file_path = _get_file_path(job_id_str, sim_type, config, "odb_main")
+        _log_info("Found ODB file: {}".format(odb_file_path))
+    except IOError as e:
+        _log_info(str(e), level="ERROR")
+        return None
 
-    # load abaqus settings from config
     abaqus_settings = config["abaqus_settings"]
-
-    # Ensure the ODB file is compatible with the current Abaqus version.
     odb_file_path_upgraded = _upgrade_odb_if_needed(odb_file_path)
 
-    print("  Open odb file: {}".format(odb_file_path_upgraded))
+    _log_info("Opening ODB file: {}".format(odb_file_path_upgraded))
     curr_odb = openOdb(odb_file_path_upgraded, readOnly=True)
 
     extracted_data = {"step_name": []}
@@ -152,52 +161,48 @@ def extract_odb_data(job_id_str, sim_type, config):
     elif steps_selection == "all_but_first" and len(all_step_names) > 1:
         steps_to_process = all_step_names[1:]
     else:
-        raise UserWarning("Invalid or insufficient steps for selection criteria.")
+        raise UserWarning("Invalid or insufficient steps for selection criteria: '{}'".format(steps_selection))
 
-    print("  Extract data from steps: {}".format(", ".join(steps_to_process)))
+    _log_info("Extracting data from steps: {}".format(", ".join(steps_to_process)))
 
-    # Iterate through selected steps in the ODB file.
     for step_name in steps_to_process:
-        print("  - extracting {}:".format(step_name))
+        _log_info("Processing step: {}".format(step_name))
         step = curr_odb.steps[step_name]
         current_step_values = {}
 
         try:
-            # Iterate through each region defined in history_outputs
             for region_key, outputs_list in abaqus_settings["history_outputs"].items():
                 history_region_name = abaqus_settings["history_regions"].get(region_key)
                 if not history_region_name:
-                    raise KeyError("History region '{}' not found".format(region_key))
+                    raise KeyError("History region '{}' not found in config".format(region_key))
 
                 history_region = step.historyRegions[history_region_name]
                 for output_name in outputs_list:
-                    # last increment value, leaving out the increment time
                     value = history_region.historyOutputs[output_name].data[-1][1]
-                    # Apply specific transformations based on output name
                     if output_name == "RF3":
                         value *= -1.0
                     elif output_name == "UR1":
                         value = round(value * 180 / math.pi, 1)
                     current_step_values[output_name] = value
 
-            # Sanity check for RF3 if it was extracted correctly
             if current_step_values.get("RF3", float("inf")) < 1000:
-                print(
-                    "  RF3 is too small (RF3 = {:.2f} N). Please check simulation.".format(
+                _log_info(
+                    "RF3 is unexpectedly low (RF3 = {:.2f} N). Please verify simulation results.".format(
                         current_step_values["RF3"]
-                    )
+                    ),
+                    level="WARNING",
                 )
 
-            # Append successfully extracted step to extracted_data dictionary
             extracted_data["step_name"].append(step_name)
             for key, value in current_step_values.items():
                 extracted_data[key].append(value)
+            _log_info("Successfully extracted data from step: {}".format(step_name))
 
         except (KeyError, UserWarning) as e:
-            print("  Skipping step {} due to error: {}".format(step_name, e))
+            _log_info("Skipping step {} due to error: {}".format(step_name, e), level="WARNING")
             continue
 
-    print("  End of data extraction.")
+    _log_info("Finished ODB data extraction for Job ID: {}".format(job_id_str))
     return extracted_data
 
 
