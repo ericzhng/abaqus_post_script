@@ -8,7 +8,16 @@
             "name": "Python Debugger",
             "type": "debugpy",
             "request": "launch",
-            "program": "${file}",
+            "program": "main_abaqus_post.py",
+            "args": [
+                "-i",
+                "[12032]",
+                "-t",
+                "Braking",
+                "-o",
+                "trunk"
+            ],
+            "cwd": "${workspaceFolder}",
             "console": "integratedTerminal"
         },
         {
