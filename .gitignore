@@ -1,2 +1,7 @@
 trunk
 *.csv
+**/*.pyc
+**/*.odb
+
+**/*_data.json
+**/temp*.json
