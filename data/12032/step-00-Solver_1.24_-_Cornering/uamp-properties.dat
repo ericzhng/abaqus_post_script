@@ -1,0 +1,17 @@
+# Each variable is defined on two lines. The first line defines the uampType and the Abaqus step number where it's used.
+# The second line contains its properties. Depending on the type of boundary condition:
+# - for velocity: stepTime, magnitude, curveType, (freeRollingOmega/radius)
+# - for force/torque: errorTolerance, slope, magnitude
+3, RIMVRY
+1, -0.03382725020322386, "linear"
+3, ROADVX
+1, -11.028290573792466, "linear"
+3, ROADVY
+1, -1.3541038156127496, "linear"
+4, RIMFRY
+13530, 3E+09, 0
+4, ROADVX
+1, -11.028290573792466, "linear"
+4, ROADVY
+1, -1.3541038156127496, "linear"
+7, END
