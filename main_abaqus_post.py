@@ -60,13 +60,13 @@ def main(job_ids, sim_type, config, output_path):
                     control_variable,
                     extract_data["RF1"][0],  # FX
                     extract_data["RF2"][0],  # FY
+                    extract_data["RF3"][0],  # FZ
                     extract_data["TM1"][0],  # MX
                     extract_data["TM3"][0],  # MZ
+                    extract_data["UR1"][0],  # IA
                     extract_data["COOR3"][0],  # LR
                     extract_data["V1"][0],  # VX
                     extract_data["V2"][0],  # VY
-                    extract_data["RF3"][0],  # FZ
-                    extract_data["UR1"][0],  # IA
                 )
             )
             print(f"  Successfully extracted data for job ID: {job_id_str}")
@@ -91,13 +91,13 @@ def main(job_ids, sim_type, config, output_path):
         ("Slip", "f8"),
         ("FX", "f8"),
         ("FY", "f8"),
+        ("FZ", "f8"),
         ("MX", "f8"),
         ("MZ", "f8"),
+        ("IA", "f8"),
         ("LR", "f8"),
         ("VX", "f8"),
         ("VY", "f8"),
-        ("FZ", "f8"),
-        ("IA", "f8"),
     ]
     data_array = np.array(results, dtype=dtype)
 
@@ -114,9 +114,8 @@ def main(job_ids, sim_type, config, output_path):
     print(f'\nFormatting and writing data to "{simulation_data_file}"...')
 
     # Define header and format for the CSV file
-    header = "Slip,FX,FY,MX,MZ,LR,VX,VY"
-    # Select the columns to be saved, excluding FZ and IA
-    columns_to_save = ["Slip", "FX", "FY", "MX", "MZ", "LR", "VX", "VY"]
+    columns_to_save = ["Slip", "FX", "FY", "FZ", "MX", "MZ", "IA", "LR", "VX", "VY"]
+    header = ",".join(columns_to_save)
 
     # Use numpy.savetxt for efficient and clean CSV writing
     np.savetxt(
@@ -125,7 +124,7 @@ def main(job_ids, sim_type, config, output_path):
         delimiter=",",
         header=header,
         comments="",
-        fmt="%.4f",
+        fmt="%.3f",
     )
 
     print("=================================\n")
