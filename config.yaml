@@ -7,7 +7,7 @@
 # ------------------------------------------------------------------------------
 paths:
   # Abaqus solver path
-  abaqus_solver_path: "C:\\SIMULIA\\Commands\\abq2023.bat"
+  abaqus_solver_path: "/app/abaqusnet/Commands/abq2023hf3"
 
   # Base folder for simulation job files based on the operating system.
   job_folder:
