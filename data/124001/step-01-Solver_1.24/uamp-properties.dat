@@ -1,0 +1,65 @@
+# Each variable is defined on two lines. The first line defines the uampType and the Abaqus step number where it's used.
+# The second line contains its properties. Depending on the type of boundary condition:
+# - for velocity: stepTime, magnitude, curveType, (freeRollingOmega/radius)
+# - for force/torque: errorTolerance, slope, magnitude
+5, RIMSRY
+1, 1.00000000E-02, "linear", -7.15869676E-02
+5, ROADVX
+1, -2.77780000E+01, "linear"
+5, ROADVY
+1, 0.00000000E+00, "linear"
+6, RIMSRY
+1, 2.00000000E-02, "linear", -7.15869676E-02
+6, ROADVX
+1, -2.77780000E+01, "linear"
+6, ROADVY
+1, 0.00000000E+00, "linear"
+7, RIMSRY
+1, 3.00000000E-02, "linear", -7.15869676E-02
+7, ROADVX
+1, -2.77780000E+01, "linear"
+7, ROADVY
+1, 0.00000000E+00, "linear"
+8, RIMSRY
+1, 4.00000000E-02, "linear", -7.15869676E-02
+8, ROADVX
+1, -2.77780000E+01, "linear"
+8, ROADVY
+1, 0.00000000E+00, "linear"
+9, RIMSRY
+1, 6.00000000E-02, "linear", -7.15869676E-02
+9, ROADVX
+1, -2.77780000E+01, "linear"
+9, ROADVY
+1, 0.00000000E+00, "linear"
+10, RIMSRY
+1, 8.00000000E-02, "linear", -7.15869676E-02
+10, ROADVX
+1, -2.77780000E+01, "linear"
+10, ROADVY
+1, 0.00000000E+00, "linear"
+11, RIMSRY
+1, 1.00000000E-01, "linear", -7.15869676E-02
+11, ROADVX
+1, -2.77780000E+01, "linear"
+11, ROADVY
+1, 0.00000000E+00, "linear"
+12, RIMSRY
+1, 1.20000000E-01, "linear", -7.15869676E-02
+12, ROADVX
+1, -2.77780000E+01, "linear"
+12, ROADVY
+1, 0.00000000E+00, "linear"
+13, RIMSRY
+1, 1.60000000E-01, "linear", -7.15869676E-02
+13, ROADVX
+1, -2.77780000E+01, "linear"
+13, ROADVY
+1, 0.00000000E+00, "linear"
+14, RIMSRY
+1, 2.00000000E-01, "linear", -7.15869676E-02
+14, ROADVX
+1, -2.77780000E+01, "linear"
+14, ROADVY
+1, 0.00000000E+00, "linear"
+7, END
