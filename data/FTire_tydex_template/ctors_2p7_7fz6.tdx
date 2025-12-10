@@ -1,0 +1,47 @@
+**HEADER
+RELEASE   Release of Tydex format                 1.3
+MEASID    Measurement ID                          
+SUPPLIER  Data supplier                           National Tire Research Center
+DATE      Date                                    18-Mar-2024
+CLCKTIME  Time                                    09:32:44
+
+**COMMENTS
+Created with FTire Processor v3.7.2                                        
+For test request T23-01204                                                 
+
+**CONSTANTS
+NOMWIDTH  Nominal section width         m         0.275
+ASPRATIO  Nominal aspect ratio          -         0.5
+NOMDIAME  Nominal diameter of tire      m         0.8338
+RIMDIAME  Nominal rim diameter          m         0.5588
+RIMWIDTH  Nominal rim width             m         0.2286
+MANUFACT  Tire brand name               -         Bridgestone
+IDENTITY  Commercial tire name          -         Alenza A/S 02
+SPEEDSYM  Speed index                   -         T
+LOADIND   Load index                    -         111
+OVALLDIA  Measured outside diameter     m         0.83015
+TRGROTIN  Test rig rotational inertia   kgm2      5.96
+TYROTIN   Tire IYY inertia              kgm2      2.5208
+TYRESTIN  Tire IZZ inertia              kgm2      1.4371
+RIMROTIN  Rim rotational inertia        kgm2      NaN
+TYREMASS  Tire mass                     kg        18.52
+TRCKSURF  Track surface                 -         3m 120 grit
+TRCKCOND  Track condition               -         Dry
+CURVTRSF  Curvature of track            1/m       0
+TIRESIZE  Tire size                     -         275/50R22
+INFLPRES  Inflation pressure            bar       2.7
+LONGVEL   Roadway velocity              kph       0
+FZW       Vertical load                 N         7563
+
+**MEASURCHANNELS
+RUNTIME   Running time                  s         1         0         0
+FZW       Vertical force                N         1         0         0
+FYW       Lateral force                 N         1         0         0
+MZW       Aligning moment               Nm        1         0         0
+DSTGRWHC  Dist. ground wheel center     mm        1         0         0
+STEEANGL  Steer angle                   deg       1         0         0
+
+**MEASURDATA 6
+    0.0000000    7559.3143    -130.3479      14.6696      10.8895      67.7301
+
+**END
