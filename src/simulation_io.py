@@ -9,14 +9,15 @@ Date: Nov. 5, 2025
 """
 
 import os
-import math
-import subprocess
 import json
+import subprocess
+
+import numpy as np
 
 from src.utility import get_file_path
 
 
-def extract_uamp_property(job_id_str, sim_type, config):
+def extract_uamp_property(job_id_str, sim_type, config) -> np.ndarray:
     """
     Extracts slip ratio or slip angle from a uamp-properties.dat file.
 
@@ -28,16 +29,34 @@ def extract_uamp_property(job_id_str, sim_type, config):
     Returns:
         float: The extracted slip ratio or slip angle in degrees.
     """
+    print("  --------------------------------------------------")
     print(f"  Extracting UAMP property for job ID: {job_id_str}")
-    uamp_file_path = get_file_path(
+    uamp_file_path_list = get_file_path(
         job_id_str,
-        sim_type,
         config,
         file_name_key="uamp_properties",
     )
+
+    uamp_file_path = None
+    keyword = config["paths"].get("solver_sub_folder_keyword", "").strip()
+    if keyword:
+        for path in uamp_file_path_list:
+            if keyword in os.path.dirname(path):
+                uamp_file_path = path
+                break
+    else:
+        uamp_file_path = uamp_file_path_list[0]
+
+    if not uamp_file_path:
+        raise FileNotFoundError("No uamp-properties.dat file found.")
+
     print(f"    Reading UAMP properties from: {uamp_file_path}")
-    uamp_properties = {}
+
     uamp_keys = config["extraction_details"]["uamp_keys"][sim_type.lower()]
+    # list of dictionary to hold extracted properties
+    uamp_property_dict = dict()
+    for key in uamp_keys:
+        uamp_property_dict[key] = []
 
     with open(uamp_file_path, "r") as f:
         lines = f.readlines()
@@ -49,28 +68,48 @@ def extract_uamp_property(job_id_str, sim_type, config):
                 parts = properties_line.split(",")
                 if len(parts) > 1:
                     try:
-                        uamp_properties[key] = float(parts[1].strip())
-                        print(f"      Extracted {key}: {uamp_properties[key]}")
+                        value = float(parts[1].strip())
+                        uamp_property_dict[key].append(value)
+                        print(f"      Extracted {key}: {value}")
                     except ValueError:
                         raise ValueError(f"Could not convert value for {key} to float.")
                 else:
                     raise ValueError(f"{key} found, but no properties line followed.")
 
-    sim_type_lower = sim_type.lower()
-    if sim_type_lower == "braking":
-        if "RIMSRY" not in uamp_properties:
+    if sim_type.lower() == "braking":
+        if "RIMSRY" not in uamp_property_dict:
             raise ValueError("RIMSRY not found in uamp-properties.dat for braking.")
-        return uamp_properties["RIMSRY"]
-    elif sim_type_lower == "cornering":
-        if "ROADVX" not in uamp_properties or "ROADVY" not in uamp_properties:
+        control_variables = np.array(uamp_property_dict["RIMSRY"])
+
+    elif sim_type.lower() in {"cornering", "freerolling"}:
+        if "ROADVX" not in uamp_property_dict or "ROADVY" not in uamp_property_dict:
             raise ValueError(
-                "ROADVX or ROADVY not found in uamp-properties.dat for cornering."
+                f"ROADVX or ROADVY not found in uamp-properties.dat for {sim_type.lower()}."
             )
-        vx = uamp_properties["ROADVX"]
-        vy = uamp_properties["ROADVY"]
-        return math.degrees(math.atan2(vy, abs(vx)))
+        vx = np.array(uamp_property_dict["ROADVX"])
+        vy = np.array(uamp_property_dict["ROADVY"])
+        control_variables = np.degrees(np.arctan2(vy, np.abs(vx)))
     else:
         raise ValueError(f"Unknown sim_type: {sim_type}")
+
+    steps_selection = config["abaqus_settings"]["history_step_selection"][
+        "sim_type_mapping"
+    ].get(sim_type.lower())
+
+    if steps_selection == "last":
+        return control_variables[-1:]
+    elif steps_selection == "first":
+        return control_variables[:1]
+    elif steps_selection == "all":
+        return control_variables
+    elif steps_selection == "all_but_first" and control_variables.size > 1:
+        return control_variables[1:]
+    else:
+        raise UserWarning(
+            "Invalid or insufficient steps for selection criteria: '{}'".format(
+                steps_selection
+            )
+        )
 
 
 def extract_odb_result(src_dir, output_dir, job_id_str, sim_type, config):
@@ -120,11 +159,11 @@ def extract_odb_result(src_dir, output_dir, job_id_str, sim_type, config):
         result = subprocess.run(command, check=True, capture_output=True, text=True)
         print("    Abaqus script executed successfully.")
         if result.stdout:
-            print(f"    Stdout:\n{result.stdout}")
+            print(f"    Stdout [below]:\n{result.stdout}")
     except subprocess.CalledProcessError as e:
         print(f"    [ERROR] Abaqus script failed with return code {e.returncode}")
         if e.stderr:
-            print(f"    Stderr:\n{e.stderr}")
+            print(f"    Stderr [below]:\n{e.stderr}")
         raise
     except FileNotFoundError:
         print(f"    [ERROR] The executable '{command[0]}' was not found.")
@@ -132,7 +171,6 @@ def extract_odb_result(src_dir, output_dir, job_id_str, sim_type, config):
     finally:
         if os.path.exists(temp_config_path):
             os.remove(temp_config_path)
-        print("  --------------------------------------------------")
 
     try:
         with open(output_path, "r") as f:

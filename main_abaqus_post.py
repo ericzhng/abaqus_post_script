@@ -40,11 +40,11 @@ def main(job_ids, sim_type, config, output_path):
     os.makedirs(output_path, exist_ok=True)
 
     results = []
-    print("=================================\n")
-    print(f"Starting data extraction for {len(job_ids)} jobs...")
+    print(f"Starting data extraction for {len(job_ids)} jobs...\n")
 
     for job_id in job_ids:
         job_id_str = str(job_id)
+        print("=================================")
         print(f"  Processing job ID: {job_id_str}")
 
         try:
@@ -55,20 +55,43 @@ def main(job_ids, sim_type, config, output_path):
             )
 
             # Append all relevant data for this job_id as a tuple
-            results.append(
-                (
-                    control_variable,
-                    extract_data["RF1"][0],  # FX
-                    extract_data["RF2"][0],  # FY
-                    extract_data["RF3"][0],  # FZ
-                    extract_data["TM1"][0],  # MX
-                    extract_data["TM3"][0],  # MZ
-                    extract_data["UR1"][0],  # IA
-                    extract_data["COOR3"][0],  # LR
-                    extract_data["V1"][0],  # VX
-                    extract_data["V2"][0],  # VY
+            if len(extract_data["RF1"]) == control_variable.size:
+                for k in range(control_variable.size):
+                    results.append(
+                        (
+                            control_variable[k],
+                            extract_data["RF1"][k],  # FX
+                            extract_data["RF2"][k],  # FY
+                            extract_data["RF3"][k],  # FZ
+                            extract_data["TM1"][k],  # MX
+                            extract_data["TM3"][k],  # MZ
+                            extract_data["UR1"][k],  # IA
+                            extract_data["COOR3"][k],  # LR
+                            extract_data["V1"][k],  # VX
+                            extract_data["V2"][k],  # VY
+                        )
+                    )
+            else:
+                print(
+                    f"  [WARNING] Size mismatch for job ID {job_id_str}: "
+                    f"Control variable size {control_variable.size} vs "
+                    f"Extracted data size {len(extract_data['RF1'])}. "
+                    "Using first value only."
                 )
-            )
+                results.append(
+                    (
+                        control_variable[0],
+                        extract_data["RF1"][0],  # FX
+                        extract_data["RF2"][0],  # FY
+                        extract_data["RF3"][0],  # FZ
+                        extract_data["TM1"][0],  # MX
+                        extract_data["TM3"][0],  # MZ
+                        extract_data["UR1"][0],  # IA
+                        extract_data["COOR3"][0],  # LR
+                        extract_data["V1"][0],  # VX
+                        extract_data["V2"][0],  # VY
+                    )
+                )
             print(f"  Successfully extracted data for job ID: {job_id_str}")
 
         except FileNotFoundError as e:
@@ -134,7 +157,7 @@ def main(job_ids, sim_type, config, output_path):
 
 if __name__ == "__main__":
     print("=================================")
-    print("      ABAQUS POST-PROCESSING       ")
+    print("     ABAQUS POST-PROCESSING      ")
     print("=================================")
 
     try:
@@ -142,7 +165,7 @@ if __name__ == "__main__":
         unique_list, sim_type, output_path = parse_arguments()
 
         # Load configuration
-        config = load_config()
+        config = load_config(os.path.dirname(__file__))
 
         # Run the main post-processing function
         main(unique_list, sim_type, config, output_path)

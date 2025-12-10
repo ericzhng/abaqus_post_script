@@ -39,7 +39,7 @@ def convert_unicode_to_str(data):
         return data
 
 
-def _get_file_path(job_id_str, sim_type, config, file_name_key):
+def _get_file_path(job_id_str, config, file_name_key):
     """
     Constructs the file path for a given simulation file based on configuration.
 
@@ -62,9 +62,8 @@ def _get_file_path(job_id_str, sim_type, config, file_name_key):
     job_folder = config["paths"]["job_folder"][platform]
     file_name = config["paths"]["file_names"][file_name_key]
 
-    solver_sub_folder = config["paths"]["solver_sub_folder_pattern"].format(
-        sim_type=sim_type.title()
-    )
+    solver_sub_folder = config["paths"]["solver_sub_folder_pattern"]
+
     file_match_pattern = os.path.join(
         job_folder, job_id_str, solver_sub_folder, file_name
     )
@@ -73,7 +72,8 @@ def _get_file_path(job_id_str, sim_type, config, file_name_key):
 
     if not file_path_list:
         raise IOError("No file found for pattern: {}".format(file_match_pattern))
-    return os.path.abspath(file_path_list[0])
+
+    return [os.path.abspath(file_path) for file_path in file_path_list]
 
 
 def _log_info(message, level="INFO"):
@@ -127,9 +127,23 @@ def extract_odb_data(job_id_str, sim_type, config):
     based on the provided configuration.
     """
     _log_info("Starting ODB data extraction for Job ID: {}".format(job_id_str))
-    
+
     try:
-        odb_file_path = _get_file_path(job_id_str, sim_type, config, "odb_main")
+        odb_file_path_list = _get_file_path(job_id_str, config, "odb_main")
+
+        odb_file_path = None
+        keyword = config["paths"].get("solver_sub_folder_keyword", "").strip()
+        if keyword:
+            for path in odb_file_path_list:
+                if keyword in os.path.dirname(path):
+                    odb_file_path = path
+                    break
+        else:
+            odb_file_path = odb_file_path_list[0]
+
+        if not odb_file_path:
+            raise FileNotFoundError("No uamp-properties.dat file found.")
+
         _log_info("Found ODB file: {}".format(odb_file_path))
     except IOError as e:
         _log_info(str(e), level="ERROR")
@@ -161,7 +175,11 @@ def extract_odb_data(job_id_str, sim_type, config):
     elif steps_selection == "all_but_first" and len(all_step_names) > 1:
         steps_to_process = all_step_names[1:]
     else:
-        raise UserWarning("Invalid or insufficient steps for selection criteria: '{}'".format(steps_selection))
+        raise UserWarning(
+            "Invalid or insufficient steps for selection criteria: '{}'".format(
+                steps_selection
+            )
+        )
 
     _log_info("Extracting data from steps: {}".format(", ".join(steps_to_process)))
 
@@ -174,12 +192,15 @@ def extract_odb_data(job_id_str, sim_type, config):
             for region_key, outputs_list in abaqus_settings["history_outputs"].items():
                 history_region_name = abaqus_settings["history_regions"].get(region_key)
                 if not history_region_name:
-                    raise KeyError("History region '{}' not found in config".format(region_key))
+                    raise KeyError(
+                        "History region '{}' not found in config".format(region_key)
+                    )
 
                 history_region = step.historyRegions[history_region_name]
                 for output_name in outputs_list:
                     value = history_region.historyOutputs[output_name].data[-1][1]
-                    if output_name == "RF3":
+                    # change sign for converting from adapated SAE to ISO coordinate system
+                    if output_name in ["TM3", "RF2", "RF3"]:
                         value *= -1.0
                     elif output_name == "UR1":
                         value = round(value * 180 / math.pi, 1)
@@ -199,7 +220,10 @@ def extract_odb_data(job_id_str, sim_type, config):
             _log_info("Successfully extracted data from step: {}".format(step_name))
 
         except (KeyError, UserWarning) as e:
-            _log_info("Skipping step {} due to error: {}".format(step_name, e), level="WARNING")
+            _log_info(
+                "Skipping step {} due to error: {}".format(step_name, e),
+                level="WARNING",
+            )
             continue
 
     _log_info("Finished ODB data extraction for Job ID: {}".format(job_id_str))

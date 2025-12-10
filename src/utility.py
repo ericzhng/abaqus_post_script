@@ -15,7 +15,7 @@ import yaml
 import glob
 
 
-def get_file_path(job_id_str, sim_type, config, file_name=None, file_name_key=None):
+def get_file_path(job_id_str, config, file_name=None, file_name_key=None):
     """
     Constructs the file path for a given simulation file based on configuration.
 
@@ -24,7 +24,6 @@ def get_file_path(job_id_str, sim_type, config, file_name=None, file_name_key=No
 
     Args:
         job_id_str (str): The job ID.
-        sim_type (str): The simulation type (e.g., 'Braking', 'Cornering').
         config (dict): A dictionary containing configuration parameters.
         file_name (str, optional): The name of the file to locate. Defaults to None.
         file_name_key (str, optional): The key for the file name in the config. Defaults to None.
@@ -45,9 +44,10 @@ def get_file_path(job_id_str, sim_type, config, file_name=None, file_name_key=No
     if file_name_key:
         file_name = config["paths"]["file_names"][file_name_key]
 
-    solver_sub_folder = config["paths"]["solver_sub_folder_pattern"].format(
-        sim_type=sim_type.title()
-    )
+    if file_name is None:
+        raise ValueError("file_name must not be None when constructing file path.")
+
+    solver_sub_folder = config["paths"]["solver_sub_folder_pattern"]
 
     file_match_pattern = os.path.join(
         job_folder,
@@ -60,7 +60,8 @@ def get_file_path(job_id_str, sim_type, config, file_name=None, file_name_key=No
 
     if not file_path_list:
         raise FileNotFoundError(f"No file found for pattern: {file_match_pattern}")
-    return os.path.abspath(file_path_list[0])
+
+    return [os.path.abspath(file_path) for file_path in file_path_list]
 
 
 def generate_range_list(start, end):
@@ -128,7 +129,7 @@ def parse_matlab_array_input(input_str):
 
 def case_insensitive_choice(arg_value):
     """Converts the argument value to title case for case-insensitive validation."""
-    return arg_value.title()
+    return arg_value.lower().title()
 
 
 def sort_lists_by_first(list1, *argv):
@@ -148,10 +149,10 @@ def sort_lists_by_first(list1, *argv):
     return sorted_lists
 
 
-def load_config():
+def load_config(config_dir):
     """Loads the configuration from the config.yaml file."""
     print("Loading configuration from config.yaml...")
-    config_path = os.path.join(os.path.dirname(__file__), "..", "config.yaml")
+    config_path = os.path.join(config_dir, "config.yaml")
     with open(config_path, "r") as f:
         return yaml.safe_load(f)
 
@@ -184,8 +185,8 @@ def parse_arguments():
         "--type",
         type=case_insensitive_choice,
         required=True,
-        choices=["Braking", "Cornering"],
-        help="The type of simulation to post-process (e.g., 'Braking', 'Cornering').\n    The input is case-insensitive.",
+        choices=["Braking", "Cornering", "Freerolling"],
+        help="The type of simulation to post-process (e.g., 'Braking', 'Cornering', 'FreeRolling').\n    The input is case-insensitive.",
     )
 
     parser.add_argument(
