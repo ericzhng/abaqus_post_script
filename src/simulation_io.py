@@ -9,6 +9,7 @@ Date: Nov. 5, 2025
 """
 
 import os
+import sys
 import json
 import subprocess
 
@@ -38,7 +39,7 @@ def extract_uamp_property(job_id_str, sim_type, config) -> np.ndarray:
     )
 
     uamp_file_path = None
-    keyword = config["paths"].get("solver_sub_folder_keyword", "").strip()
+    keyword = config["paths"]["solver_sub_folder_keyword"][sim_type].strip()
     if keyword:
         for path in uamp_file_path_list:
             if keyword in os.path.dirname(path):
@@ -52,7 +53,7 @@ def extract_uamp_property(job_id_str, sim_type, config) -> np.ndarray:
 
     print(f"    Reading UAMP properties from: {uamp_file_path}")
 
-    uamp_keys = config["extraction_details"]["uamp_keys"][sim_type.lower()]
+    uamp_keys = config["extraction_details"]["uamp_keys"][sim_type]
     # list of dictionary to hold extracted properties
     uamp_property_dict = dict()
     for key in uamp_keys:
@@ -139,8 +140,9 @@ def extract_odb_result(src_dir, output_dir, job_id_str, sim_type, config):
     with open(temp_config_path, "w") as f:
         json.dump(config, f)
 
+    platform = "win32" if "win32" in sys.platform.lower() else "linux"
     command = [
-        config["paths"]["abaqus_solver_path"],
+        config["paths"]["abaqus_solver_path"][platform],
         "python",
         script_path,
         "--job_id",

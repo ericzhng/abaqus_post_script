@@ -199,7 +199,7 @@ def parse_arguments():
 
     args = parser.parse_args()
     input_str = args.input
-    sim_type = args.type
+    sim_type = args.type.lower()
 
     if args.output is None:
         output_path = os.getcwd()

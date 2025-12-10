@@ -132,7 +132,7 @@ def extract_odb_data(job_id_str, sim_type, config):
         odb_file_path_list = _get_file_path(job_id_str, config, "odb_main")
 
         odb_file_path = None
-        keyword = config["paths"].get("solver_sub_folder_keyword", "").strip()
+        keyword = config["paths"]["solver_sub_folder_keyword"][sim_type].strip()
         if keyword:
             for path in odb_file_path_list:
                 if keyword in os.path.dirname(path):
@@ -142,7 +142,7 @@ def extract_odb_data(job_id_str, sim_type, config):
             odb_file_path = odb_file_path_list[0]
 
         if not odb_file_path:
-            raise FileNotFoundError("No uamp-properties.dat file found.")
+            raise FileNotFoundError("No main.odb file file found.")
 
         _log_info("Found ODB file: {}".format(odb_file_path))
     except IOError as e:
