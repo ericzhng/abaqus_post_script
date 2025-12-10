@@ -131,7 +131,7 @@ def main(job_ids, sim_type, config, output_path):
     # Prepare for file writing
     fz_val = data_array["FZ"][0]
     ia_val = data_array["IA"][0]
-    simulation_data_file = f"{sim_type}_Sweep_{fz_val:.0f}N_{ia_val:.0f}deg.csv"
+    simulation_data_file = f"{sim_type}_sweep_{fz_val:.0f}N_{ia_val:.0f}deg.csv"
     output_file_path = os.path.join(output_path, simulation_data_file)
 
     print(f'\nFormatting and writing data to "{simulation_data_file}"...')
