@@ -7,16 +7,24 @@
 # ------------------------------------------------------------------------------
 paths:
   # Abaqus solver path
-  abaqus_solver_path: "/app/abaqusnet/Commands/abq2023hf3"
+  abaqus_solver_path:
+    win32: "C:\\SIMULIA\\Commands\\abq2023.bat"
+    linux: "/app/abaqusnet/Commands/abq2023hf3"
 
   # Base folder for simulation job files based on the operating system.
   job_folder:
     win32: "./data"
     linux: "/mnt/Pure/jobfolder"
 
+  # If multiple Solver subfolders, choose one with specified keyword
+  solver_sub_folder_keyword:
+    braking: ""
+    cornering: ""
+    freerolling: "FreeRolling"
+
   # Subfolder pattern for solver files. '{sim_type}' is a placeholder.
-  solver_sub_folder_pattern: "step-*-Solver_*{sim_type}*"
-  
+  solver_sub_folder_pattern: "step-*-Solver_*"
+
   # Names of the files to be processed.
   file_names:
     uamp_properties: "uamp-properties.dat"
@@ -58,11 +66,12 @@ abaqus_settings:
   history_step_selection:
     # List of *available* step options (informational only, can be removed if not needed by the script)
     # available_options: [first, last, all, all_but_first]
-    
+
     # Specific option to use for each simulation type (This replaces 'use_option' and the original 'history_steps_options')
     sim_type_mapping:
-      braking: last
+      braking: all
       cornering: last
+      freerolling: last
 
 # ------------------------------------------------------------------------------
 # 3. UAMP Property Extraction Details
@@ -73,5 +82,8 @@ extraction_details:
     braking:
       - RIMSRY
     cornering:
+      - ROADVX
+      - ROADVY
+    freerolling:
       - ROADVX
       - ROADVY

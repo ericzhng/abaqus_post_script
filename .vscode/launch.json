@@ -11,9 +11,9 @@
             "program": "main_abaqus_post.py",
             "args": [
                 "-i",
-                "[12032]",
+                "[122000]",
                 "-t",
-                "Braking",
+                "FreeRolling",
                 "-o",
                 "trunk"
             ],
