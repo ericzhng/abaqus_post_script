@@ -9,6 +9,7 @@ Date: Nov. 5, 2025
 """
 
 import argparse
+import re
 import os
 import sys
 import yaml
@@ -99,7 +100,8 @@ def parse_matlab_array_input(input_str):
         ValueError: If the input string is malformed.
     """
     cleaned_str = input_str.strip().strip("[]")
-    elements = [e.strip() for e in cleaned_str.split(",") if e.strip()]
+    elements = re.split(r"[,\s]+", cleaned_str)
+    elements = [e.strip() for e in elements if e.strip()]
 
     if not elements:
         raise ValueError("Input string is empty or contains only brackets/commas.")
