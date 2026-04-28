@@ -3,12 +3,11 @@ addpath(genpath('C:\Users\ZhangHui\Documents\1-code\ericlib\src'));
 clear; clc;
 
 % specify root directory for ftire raw data
-rootDir = "D:\0-data-library\Virtual\GM-FTIRE\ZG719Q";
+rootDir = "D:\0-data-library\Virtual\GM-FTIRE\ZI727Q";
 
 stiffnessFolder = fullfile(rootDir, "stiffness");
-% sampleTdx = "A-27348_TotalStiff_Flat_Lat_7563N_270kPa.tdx";
 
-TR_number = 'T23-01204';
+TR_number = 'T20-00968';
 
 %========================
 % no changes afterwards
@@ -194,7 +193,7 @@ for k = 1:numel(dirPat)
     tdxData.measdata.runtime = tdxDataVulcan.measdata.runtime;
     tdxData.measdata.fzw = tdxDataVulcan.measdata.fzw;
     tdxData.measdata.fyw = tdxDataVulcan.measdata.fyw;
-    tdxData.measdata.mzw = tdxDataVulcan.measdata.mzw;
+    tdxData.measdata.mzw = -tdxDataVulcan.measdata.mzw;
     tdxData.measdata.dstgrwhc = tdxDataVulcan.measdata.dstgrwhc;
     tdxData.measdata.steeangl = tdxDataVulcan.measdata.steeangl;
 
