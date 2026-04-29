@@ -24,9 +24,10 @@ logger = get_logger()
 
 
 def main():
-    logger.info("=================================")
-    logger.info("     ABAQUS POST-PROCESSING      ")
-    logger.info("=================================")
+    logger.info("=" * 60)
+    logger.info("                 ABAQUS POST-PROCESSING")
+    logger.info("=" * 60)
+    logger.info("")
 
     try:
         # Parse command-line arguments
@@ -47,9 +48,10 @@ def main():
         logger.error(f"A critical error occurred: {e}")
 
     finally:
-        logger.info("=================================")
-        logger.info("  All operations have concluded.   ")
-        logger.info("=================================")
+        logger.info("")
+        logger.info("=" * 60)
+        logger.info("               ALL OPERATIONS CONCLUDED")
+        logger.info("=" * 60)
 
 
 if __name__ == "__main__":

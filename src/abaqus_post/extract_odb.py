@@ -3,7 +3,6 @@ import math
 from contextlib import contextmanager
 
 import numpy as np
-from odbAccess import openOdb
 
 from .common import upgrade_odb_if_needed, get_file_path
 from .mylogger import get_logger
@@ -43,6 +42,9 @@ def _open_odb(job_id_str, sim_type, config):
     odb_file_path_upgraded = upgrade_odb_if_needed(odb_file_path)
 
     logger.info("Opening ODB file: {}".format(odb_file_path_upgraded))
+
+    from odbAccess import openOdb
+
     curr_odb = openOdb(odb_file_path_upgraded, readOnly=True)
 
     try:

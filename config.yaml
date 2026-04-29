@@ -20,7 +20,7 @@ paths:
   solver_sub_folder_keyword:
     braking: ""
     cornering: ""
-    freerolling: "FreeRolling"
+    freerolling: ""
     cleat_drum: "Explicit_Free-Rolling"
     cleat_flat: "Explicit_Free-Rolling"
 
@@ -29,7 +29,7 @@ paths:
 
   # Names of the files to be processed.
   file_names:
-    uamp_properties: ""
+    uamp_properties: "uamp-properties.dat"
     odb_main: "main.odb"
 
 # ------------------------------------------------------------------------------

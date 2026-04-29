@@ -26,7 +26,7 @@ def _get_uamp_file_path(job_id_str, sim_type, config):
     try:
         paths = get_file_path(job_id_str, config, file_name_key="uamp_properties")
     except IOError as e:
-        logger.error(str(e))
+        logger.error(f"  IOError accessing uamp-properties: {e}")
         return None
 
     keyword = config["paths"]["solver_sub_folder_keyword"][sim_type].strip()
@@ -37,7 +37,9 @@ def _get_uamp_file_path(job_id_str, sim_type, config):
     if match:
         return match
 
-    logger.error("No uamp-properties.dat file found.")
+    logger.error(
+        f"  No uamp-properties.dat file found for simulation type '{sim_type}'."
+    )
     return None
 
 
@@ -53,14 +55,11 @@ def extract_uamp_property(job_id_str, sim_type, config) -> np.ndarray:
     Returns:
         float: The extracted slip ratio or slip angle in degrees.
     """
-    logger.info("  --------------------------------------------------")
-    logger.info(f"  Extracting UAMP property for job ID: {job_id_str}")
+    logger.info(f"  Extracting UAMP properties...")
 
     uamp_file_path = _get_uamp_file_path(job_id_str, sim_type, config)
     if not uamp_file_path:
-        error_msg = "uamp-properties.dat file not found for job ID: {}".format(
-            job_id_str
-        )
+        error_msg = f"  uamp-properties.dat file not found for job ID: {job_id_str}"
         logger.error(error_msg)
         raise FileNotFoundError(error_msg)
 
@@ -82,28 +81,28 @@ def extract_uamp_property(job_id_str, sim_type, config) -> np.ndarray:
                     try:
                         value = float(parts[1].strip())
                         uamp_property_dict[key].append(value)
-                        logger.info(f"      Extracted {key}: {value}")
+                        logger.info(f"    Extracted {key}: {value}")
                     except ValueError:
-                        error_msg = f"Could not convert value for {key} to float."
+                        error_msg = (
+                            f"    Invalid value for {key}: Could not convert to float."
+                        )
                         logger.error(error_msg)
                         raise ValueError(error_msg)
                 else:
-                    error_msg = f"{key} found, but no properties line followed."
+                    error_msg = f"    Malformed uamp-properties.dat: '{key}' found but no properties line followed."
                     logger.error(error_msg)
                     raise ValueError(error_msg)
 
     if sim_type == "braking":
         if "RIMSRY" not in uamp_property_dict:
-            error_msg = "RIMSRY not found in uamp-properties.dat for braking."
+            error_msg = "  Missing required property 'RIMSRY' for braking simulation in uamp-properties.dat."
             logger.error(error_msg)
             raise ValueError(error_msg)
         control_variables = np.array(uamp_property_dict["RIMSRY"])
 
     elif sim_type in {"cornering", "freerolling"}:
         if "ROADVX" not in uamp_property_dict or "ROADVY" not in uamp_property_dict:
-            error_msg = (
-                f"ROADVX or ROADVY not found in uamp-properties.dat for {sim_type}."
-            )
+            error_msg = f"  Missing required properties ('ROADVX' or 'ROADVY') for {sim_type} simulation in uamp-properties.dat."
             logger.error(error_msg)
             raise ValueError(error_msg)
         vx = np.array(uamp_property_dict["ROADVX"])
@@ -111,7 +110,7 @@ def extract_uamp_property(job_id_str, sim_type, config) -> np.ndarray:
         control_variables = np.degrees(np.arctan2(vy, np.abs(vx)))
 
     else:
-        error_msg = f"Unknown sim_type: {sim_type}"
+        error_msg = f"  Unknown simulation type: {sim_type}"
         logger.error(error_msg)
         raise ValueError(error_msg)
 
@@ -128,11 +127,7 @@ def extract_uamp_property(job_id_str, sim_type, config) -> np.ndarray:
     elif steps_selection == "all_but_first" and control_variables.size > 1:
         return control_variables[1:]
     else:
-        warning_msg = (
-            "Invalid or insufficient steps for selection criteria: '{}'".format(
-                steps_selection
-            )
-        )
+        warning_msg = f"  Invalid or unsupported history step selection criteria: '{steps_selection}'"
         logger.warning(warning_msg)
         raise UserWarning(warning_msg)
 
@@ -155,9 +150,8 @@ def run_abaqus_post(src_dir, output_dir, job_id_str, sim_type, config):
     Returns:
         dict: The data extracted from the ODB file.
     """
-    logger.info("  --------------------------------------------------")
-    logger.info(f"  Executing Abaqus script for job ID: {job_id_str}")
-    script_path = os.path.join(src_dir, "abaqus_post", "run_abaqus_post.py")
+    logger.info(f"  Executing Abaqus Python post-processing script...")
+    script_path = os.path.join(src_dir, "run_abaqus_post.py")
     output_path = os.path.join(output_dir, f"{sim_type}_{job_id_str}_data.json")
     temp_config_path = os.path.join(output_dir, f"temp_config_{job_id_str}.json")
 
@@ -179,18 +173,37 @@ def run_abaqus_post(src_dir, output_dir, job_id_str, sim_type, config):
         output_path,
     ]
 
-    logger.info(f"    Command: {' '.join(command)}")
+    logger.debug(f"    {' '.join(command)}")
 
     try:
-        result = subprocess.run(command, check=True, capture_output=True, text=True)
-        logger.info("    Abaqus script executed successfully.")
+        result = subprocess.run(command, capture_output=True, text=True)
+
+        # Check in the result.stdout or stderr for any errors
         if result.stdout:
-            logger.info(f"    Stdout [below]:\n{result.stdout}")
-    except subprocess.CalledProcessError as e:
-        logger.error(f"    Abaqus script failed with return code {e.returncode}")
-        if e.stderr:
-            logger.error(f"    Stderr [below]:\n{e.stderr}")
-        raise
+            if "error" in result.stdout.lower():
+                logger.error(
+                    f"    Abaqus script stdout contains errors:\n\n{result.stdout}\n"
+                )
+            else:
+                logger.debug(f"    Abaqus script stdout:\n{result.stdout}")
+
+        if result.stderr:
+            if "error" in result.stderr.lower():
+                logger.error(
+                    f"    Abaqus script stderr contains errors:\n{result.stderr}"
+                )
+            else:
+                logger.warning(f"    Abaqus script stderr:\n{result.stderr}")
+
+        # Check for subprocess's own errors
+        if result.returncode != 0:
+            logger.error(
+                f"    Abaqus script failed with return code {result.returncode}"
+            )
+            raise subprocess.CalledProcessError(
+                result.returncode, command, output=result.stdout, stderr=result.stderr
+            )
+
     except FileNotFoundError:
         logger.error(f"    The executable '{command[0]}' was not found.")
         raise
@@ -198,17 +211,19 @@ def run_abaqus_post(src_dir, output_dir, job_id_str, sim_type, config):
         if os.path.exists(temp_config_path):
             os.remove(temp_config_path)
 
-    try:
-        with open(output_path, "r") as f:
-            data = json.load(f)
-    except FileNotFoundError:
-        logger.error(f"  Output file not found at {output_path}.")
-        raise
-    except json.JSONDecodeError:
-        logger.error(f"  Could not decode JSON from file {output_path}.")
-        raise
-    finally:
-        if os.path.exists(output_path):
-            os.remove(output_path)
-
-    return data
+    # Check if output_path exists and its size is bigger than zero to conclude success
+    if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+        try:
+            with open(output_path, "r") as f:
+                data = json.load(f)
+        except json.JSONDecodeError:
+            logger.error(f"  Failed to decode JSON from output file: {output_path}")
+            raise
+        finally:
+            if os.path.exists(output_path):
+                os.remove(output_path)
+        return data
+    else:
+        error_msg = f"  Abaqus post-processing failed: Output file '{output_path}' is missing or empty."
+        logger.error(error_msg)
+        raise RuntimeError(error_msg)

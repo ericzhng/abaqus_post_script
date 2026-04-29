@@ -13,10 +13,10 @@ import sys
 import json
 import argparse
 
-from .common import unicode_to_str
-from .extract_odb import extract_cleat_odb, extract_fm_odb
+from abaqus_post.common import unicode_to_str
+from abaqus_post.extract_odb import extract_cleat_odb, extract_fm_odb
 
-from .mylogger import get_logger
+from abaqus_post.mylogger import get_logger
 
 logger = get_logger()
 

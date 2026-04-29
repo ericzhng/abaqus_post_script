@@ -3,8 +3,6 @@ import sys
 import glob
 import subprocess
 
-from odbAccess import isUpgradeRequiredForOdb
-
 
 def get_file_path(job_id_str, config, file_name=None, file_name_key=None):
     """
@@ -86,6 +84,8 @@ def upgrade_odb_if_needed(odb_file_name):
     logger.info("Checking if ODB upgrade is required for: {}".format(odb_file_name))
     odb_base, _ = os.path.splitext(odb_file_name)
     upgraded_odb_file_name = odb_base + "_upgraded.odb"
+
+    from odbAccess import isUpgradeRequiredForOdb
 
     if isUpgradeRequiredForOdb(upgradeRequiredOdbPath=odb_file_name):
         if not os.path.exists(upgraded_odb_file_name):
