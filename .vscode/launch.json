@@ -11,18 +11,18 @@
             "program": "main_abaqus_post.py",
             "args": [
                 "-i",
-                "[122000]",
+                "[124001]",
                 "-t",
-                "FreeRolling",
+                "braking",
                 "-o",
-                "trunk"
+                "output"
             ],
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal"
         },
         {
             "name": "Python: Attach to Abaqus",
-            "type": "python", // Use "python" because of the old extension
+            "type": "python",
             "request": "attach",
             "connect": {
                 "host": "localhost",
@@ -30,8 +30,21 @@
             },
             "pathMappings": [
                 {
-                "localRoot": "${workspaceFolder}",
-                "remoteRoot": "${workspaceFolder}"
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "${workspaceFolder}"
+                }
+            ]
+        },
+        {
+            "name": "Abaqus Python 2.7 Attach",
+            "type": "python", // Use "python" because of the old extension
+            "request": "attach",
+            "port": 5678,
+            "host": "localhost",
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "${workspaceFolder}"
                 }
             ]
         }

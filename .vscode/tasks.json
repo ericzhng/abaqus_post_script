@@ -1,0 +1,20 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run Abaqus Post Script",
+			"type": "shell",
+			"command": "C:\\SIMULIA\\Commands\\abq2023.bat python C:\\Users\\ZhangHui\\Documents\\1-code\\2-past\\1-VOE-Abaqus-Post\\src\\run_abaqus_post.py --job_id 123000 --sim_type freerolling --config_path output\\temp_config_123000.json --output_path output\\freerolling_123000_data.json --debug",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "new"
+			},
+			"problemMatcher": [],
+			"detail": "CMake template build task"
+		}
+	]
+}
