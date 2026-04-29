@@ -1,7 +1,14 @@
-trunk
 *.csv
 **/*.pyc
 **/*.odb
 
 **/*_data.json
 **/temp*.json
+
+ptvsd
+
+run*.log
+
+trunk
+output
+temp
