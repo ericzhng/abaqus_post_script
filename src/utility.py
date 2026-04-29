@@ -8,61 +8,7 @@ Author: Eric Zhang (zhanghui@bfusa.com)
 Date: Nov. 5, 2025
 """
 
-import argparse
 import re
-import os
-import sys
-import yaml
-import glob
-
-
-def get_file_path(job_id_str, config, file_name=None, file_name_key=None):
-    """
-    Constructs the file path for a given simulation file based on configuration.
-
-    This helper function builds a file path pattern using the job ID, simulation
-    type, and configuration details, then searches for a matching file.
-
-    Args:
-        job_id_str (str): The job ID.
-        config (dict): A dictionary containing configuration parameters.
-        file_name (str, optional): The name of the file to locate. Defaults to None.
-        file_name_key (str, optional): The key for the file name in the config. Defaults to None.
-
-    Returns:
-        str: The absolute path to the located file.
-
-    Raises:
-        FileNotFoundError: If no file matching the constructed pattern is found.
-        ValueError: If neither file_name nor file_name_key is provided.
-    """
-    if file_name is None and file_name_key is None:
-        raise ValueError("Either file_name or file_name_key must be provided.")
-
-    platform = "win32" if "win32" in sys.platform.lower() else "linux"
-    job_folder = config["paths"]["job_folder"][platform]
-
-    if file_name_key:
-        file_name = config["paths"]["file_names"][file_name_key]
-
-    if file_name is None:
-        raise ValueError("file_name must not be None when constructing file path.")
-
-    solver_sub_folder = config["paths"]["solver_sub_folder_pattern"]
-
-    file_match_pattern = os.path.join(
-        job_folder,
-        job_id_str,
-        solver_sub_folder,
-        file_name,
-    )
-
-    file_path_list = glob.glob(file_match_pattern)
-
-    if not file_path_list:
-        raise FileNotFoundError(f"No file found for pattern: {file_match_pattern}")
-
-    return [os.path.abspath(file_path) for file_path in file_path_list]
 
 
 def generate_range_list(start, end):
@@ -129,11 +75,6 @@ def parse_matlab_array_input(input_str):
     return combined_list
 
 
-def case_insensitive_choice(arg_value):
-    """Converts the argument value to title case for case-insensitive validation."""
-    return arg_value.lower().title()
-
-
 def sort_lists_by_first(list1, *argv):
     """
     Sorts multiple lists based on the sorting order of the first list.
@@ -149,71 +90,3 @@ def sort_lists_by_first(list1, *argv):
     sorted_zipped_lists = sorted(zipped_lists, key=lambda x: x[0])
     sorted_lists = [list(t) for t in zip(*sorted_zipped_lists)]
     return sorted_lists
-
-
-def load_config(config_dir):
-    """Loads the configuration from the config.yaml file."""
-    print("Loading configuration from config.yaml...")
-    config_path = os.path.join(config_dir, "config.yaml")
-    with open(config_path, "r") as f:
-        return yaml.safe_load(f)
-
-
-def parse_arguments():
-    """
-    Sets up the command-line parser and processes user input.
-
-    Returns:
-        tuple: A tuple containing:
-            - list: A unique, sorted list of integers from the input string.
-            - str: The simulation type.
-            - str: The output path.
-    """
-    parser = argparse.ArgumentParser(
-        description="A CLI tool that processes a MATLAB-style input string to generate a list of integers.",
-        formatter_class=argparse.RawTextHelpFormatter,
-    )
-
-    parser.add_argument(
-        "-i",
-        "--input",
-        type=str,
-        required=True,
-        help='Input string in MATLAB-style format: "[a, b:c, d:e, f]".\n    Supports single integers and inclusive ranges (b:c).',
-    )
-
-    parser.add_argument(
-        "-t",
-        "--type",
-        type=case_insensitive_choice,
-        required=True,
-        choices=["Braking", "Cornering", "Freerolling"],
-        help="The type of simulation to post-process (e.g., 'Braking', 'Cornering', 'FreeRolling').\n    The input is case-insensitive.",
-    )
-
-    parser.add_argument(
-        "-o",
-        "--output",
-        type=str,
-        required=False,
-        help="The output directory to host results.",
-    )
-
-    args = parser.parse_args()
-    input_str = args.input
-    sim_type = args.type.lower()
-
-    if args.output is None:
-        output_path = os.getcwd()
-    else:
-        output_path = args.output
-
-    try:
-        result_list = parse_matlab_array_input(input_str)
-        unique_list = sorted(list(set(result_list)))
-        print("Successfully parsed and validated arguments.")
-        return unique_list, sim_type, output_path
-
-    except ValueError as e:
-        print(f"\n[ERROR] Invalid input provided: {e}\n")
-        sys.exit(1)

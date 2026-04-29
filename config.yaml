@@ -21,13 +21,15 @@ paths:
     braking: ""
     cornering: ""
     freerolling: "FreeRolling"
+    cleat_drum: "Explicit_Free-Rolling"
+    cleat_flat: "Explicit_Free-Rolling"
 
   # Subfolder pattern for solver files. '{sim_type}' is a placeholder.
   solver_sub_folder_pattern: "step-*-Solver_*"
 
   # Names of the files to be processed.
   file_names:
-    uamp_properties: "uamp-properties.dat"
+    uamp_properties: ""
     odb_main: "main.odb"
 
 # ------------------------------------------------------------------------------
@@ -36,31 +38,54 @@ paths:
 abaqus_settings:
   # ODB History Regions: Key is the internal name, value is the ODB path string.
   history_regions:
-    # Node-based regions
-    road: "Node PART-1-1.99111004"
-    road_handle: "Node PART-1-1.99111005"
-    rim: "Node PART-1-1.99222001"
-    rim_handle: "Node PART-1-1.99222000"
-    rim_spindle: "Node PART-1-1.99222002"
-    # Element-based regions
-    road_handle_connector: "Element PART-1-1.99111001"
-    rim_handle_connector: "Element PART-1-1.99222000"
-    rim_spindle_connector: "Element PART-1-1.99222001"
+    default:
+      # Node-based regions
+      road: "Node PART-1-1.99111004"
+      road_handle: "Node PART-1-1.99111005"
+      rim: "Node PART-1-1.99222001"
+      rim_handle: "Node PART-1-1.99222000"
+      rim_spindle: "Node PART-1-1.99222002"
+      # Element-based regions
+      road_handle_connector: "Element PART-1-1.99111001"
+      rim_handle_connector: "Element PART-1-1.99222000"
+      rim_spindle_connector: "Element PART-1-1.99222001"
+
+    cleat_drum:
+      # Node-based regions
+      drum: "Node PART-1-1.99111004"
+      rim: "Node PART-1-1.99222001"
+      rim_handle: "Node PART-1-1.99222000"
+      rim_spindle: "Node PART-1-1.99222002"
+      # Element-based regions
+      drum_spindle_connector: "Element PART-1-1.99111001"
+      rim_handle_connector: "Element PART-1-1.99222000"
+      rim_spindle_connector: "Element PART-1-1.99222001"
 
   # ODB History Outputs: Defines variables to extract per region.
   history_outputs:
-    road:
-      - V1
-      - V2
-      - COOR3
-    road_handle:
-      - RF1
-      - RF2
-      - RF3
-      - TM1
-      - TM3
-    rim_handle:
-      - UR1
+    default:
+      road:
+        - V1
+        - V2
+        - COOR3
+      road_handle:
+        - RF1
+        - RF2
+        - RF3
+        - TM1
+        - TM3
+      rim_handle:
+        - UR1
+
+    cleat_drum:
+      drum_spindle_connector:
+        - CVR1
+      rim_spindle_connector:
+        - CVR1_ANTIALIASING
+      rim_handle:
+        - RF1_ANTIALIASING
+        - RF2_ANTIALIASING
+        - RF3_ANTIALIASING
 
   # History Step Options (Refactored): Defines which step option is used for which simulation.
   history_step_selection:
@@ -72,6 +97,8 @@ abaqus_settings:
       braking: all
       cornering: last
       freerolling: last
+      cleat_drum: all
+      cleat_flat: all
 
 # ------------------------------------------------------------------------------
 # 3. UAMP Property Extraction Details
