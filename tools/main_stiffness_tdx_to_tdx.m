@@ -1,4 +1,3 @@
-
 addpath(genpath('C:\Users\ZhangHui\Documents\1-code\ericlib\src'));
 clear; clc;
 
@@ -16,11 +15,14 @@ TR_number = 'T20-00968';
 %========================
 % vert and bar
 %========================
+fprintf('Processing Vertical and Bar stiffness data...\n');
+
 strFilt = '*_Vert*.tdx';
 tdxTemp = "..\data\FTire_tydex_template\vert_2p7.tdx";
 tdxTempBar = "..\data\FTire_tydex_template\vert_A_2p7_-6cam.tdx";
 
 dirPat = dir(fullfile(stiffnessFolder, strFilt));
+
 for k = 1:numel(dirPat)
     % read old vulcan data of possibly mismatched format
     tdxDataVulcan = read_tydex(fullfile(dirPat(k).folder, dirPat(k).name));
@@ -44,6 +46,7 @@ for k = 1:numel(dirPat)
     tdxData.constants = update_tydex_constants(tdxData, tdxDataVulcan);
 
     if isbar
+
         if str2double(tdxDataVulcan.constants.clt_ori.value) == 90
             tdxData.constants.obsttype.value = 'B';
             strBarType = '_B';
@@ -51,6 +54,7 @@ for k = 1:numel(dirPat)
             tdxData.constants.obsttype.value = 'A';
             strBarType = '_A';
         end
+
     else
         strBarType = '';
     end
@@ -69,6 +73,7 @@ for k = 1:numel(dirPat)
     IP_2nd = round((IP - IP_1st) * 10);
 
     IA = str2double(tdxData.constants.inclangl.value);
+
     if IA == 0
         strIA = '';
     else
@@ -84,11 +89,14 @@ end
 %========================
 % lat only
 %========================
+fprintf('\nProcessing Lateral stiffness data...\n');
+
 strFilt = '*_Lat_*.tdx';
 tdxTemp = "..\data\FTire_tydex_template\clat_7fz6_2p7.tdx";
 tdxData = read_tydex(tdxTemp);
 
 dirPat = dir(fullfile(stiffnessFolder, strFilt));
+
 for k = 1:numel(dirPat)
     % read old vulcan data of possibly mismatched format
     tdxDataVulcan = read_tydex(fullfile(dirPat(k).folder, dirPat(k).name));
@@ -116,7 +124,7 @@ for k = 1:numel(dirPat)
 
     FZ = str2double(tdxData.constants.fzw.value);
     FZ_1st = floor(FZ / 1000);
-    FZ_2nd = floor((FZ - FZ_1st*1000) / 100);
+    FZ_2nd = floor((FZ - FZ_1st * 1000) / 100);
 
     fname = sprintf("clat_%dfz%d_%dp%d.tdx", FZ_1st, FZ_2nd, IP_1st, IP_2nd);
     write_tydex(fullfile(stiffnessFolder, fname), tdxData);
@@ -127,11 +135,14 @@ end
 %========================
 % long only
 %========================
+fprintf('\nProcessing Longitudinal stiffness data...\n');
+
 strFilt = '*_Long_*.tdx';
 tdxTemp = "..\data\FTire_tydex_template\clong_7fz6_2p7.tdx";
 tdxData = read_tydex(tdxTemp);
 
 dirPat = dir(fullfile(stiffnessFolder, strFilt));
+
 for k = 1:numel(dirPat)
     % read old vulcan data of possibly mismatched format
     tdxDataVulcan = read_tydex(fullfile(dirPat(k).folder, dirPat(k).name));
@@ -159,7 +170,7 @@ for k = 1:numel(dirPat)
 
     FZ = str2double(tdxData.constants.fzw.value);
     FZ_1st = floor(FZ / 1000);
-    FZ_2nd = floor((FZ - FZ_1st*1000) / 100);
+    FZ_2nd = floor((FZ - FZ_1st * 1000) / 100);
 
     fname = sprintf("clon_%dfz%d_%dp%d.tdx", FZ_1st, FZ_2nd, IP_1st, IP_2nd);
     write_tydex(fullfile(stiffnessFolder, fname), tdxData);
@@ -170,11 +181,14 @@ end
 %========================
 % tors only
 %========================
+fprintf('\nProcessing Torsional stiffness data...\n');
+
 strFilt = '*_Tors_*.tdx';
 tdxTemp = "..\data\FTire_tydex_template\ctors_2p7_7fz6.tdx";
 tdxData = read_tydex(tdxTemp);
 
 dirPat = dir(fullfile(stiffnessFolder, strFilt));
+
 for k = 1:numel(dirPat)
     % read old vulcan data of possibly mismatched format
     tdxDataVulcan = read_tydex(fullfile(dirPat(k).folder, dirPat(k).name));
@@ -204,7 +218,7 @@ for k = 1:numel(dirPat)
 
     FZ = str2double(tdxData.constants.fzw.value);
     FZ_1st = floor(FZ / 1000);
-    FZ_2nd = floor((FZ - FZ_1st*1000) / 100);
+    FZ_2nd = floor((FZ - FZ_1st * 1000) / 100);
 
     fname = sprintf("ctors_%dfz%d_%dp%d.tdx", FZ_1st, FZ_2nd, IP_1st, IP_2nd);
     write_tydex(fullfile(stiffnessFolder, fname), tdxData);

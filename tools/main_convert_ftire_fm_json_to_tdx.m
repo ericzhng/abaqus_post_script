@@ -24,6 +24,7 @@ tdxInfo = read_tydex(tdxFile);
 %========================
 % muslip
 %========================
+fprintf('Processing Muslip (Braking) data...\n');
 
 % for tydex template consistent with ftire
 tdxTemp = "..\data\FTire_tydex_template\side_2p7_7fz6_50v.tdx";
@@ -103,6 +104,7 @@ end
 %========================
 % side
 %========================
+fprintf('\nProcessing Side (Cornering) data...\n');
 
 % for tydex template consistent with ftire
 tdxTemp = "..\data\FTire_tydex_template\side_2p7_7fz6_50v.tdx";

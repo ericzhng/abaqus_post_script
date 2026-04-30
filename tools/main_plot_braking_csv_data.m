@@ -26,10 +26,10 @@ for k = 1:numel(filenames)
 
     try
         T = readtable(filename);
-        disp(['Successfully loaded file: ' filename]);
+        fprintf('(%d/%d): Successfully loaded file: %s\n', k, numel(filenames), filename);
     catch ME
-        disp(['Error loading file: ' filename]);
-        disp(['MATLAB Error Message: ' ME.message]);
+        fprintf('(%d/%d): Error loading file: %s\n', k, numel(filenames), filename);
+        fprintf('MATLAB Error Message: %s\n', ME.message);
         return; % Stop execution if file loading fails
     end
 
