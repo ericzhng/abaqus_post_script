@@ -1,22 +1,15 @@
-
 addpath(genpath('C:\Users\ZhangHui\Documents\1-code\ericlib\src'));
 clear; clc;
 
-spec = 'ZI727Q';
+spec = 'FC482Q';
 
 % specify root directory for ftire raw data
-if strcmpi(spec, 'ZG719Q')
-    rootDir = "D:\0-data-library\FTire\GM-FTire\FTire_ZG719Q_275_50R22_T23-01204\Virtual_PV\raw";
-    TR_number = 'T23-01204';
 
-    % use a Vulcan tydex with correct tire size and nominal pressure
-    tdxFile = fullfile(rootDir, "stiffness", 'A-27348_TotalStiff_Flat_Tors_11344N_270kPa.tdx');
-elseif strcmpi(spec, 'ZI727Q')
-    rootDir = "D:\0-data-library\FTire\GM-FTire\FTire_ZI727Q_255_55R20_T20-00968\Virtual_PV\raw";
-    TR_number = 'T20-00968';
+rootDir = "D:\0-data-library\FTire\GM-FTire\FTire_ZG719Q_275_50R22_T23-01204\Virtual_PV\raw";
+TR_number = 'T23-01204';
 
-    tdxFile = fullfile(rootDir, "stiffness", 'A-24690_TotalStiff_Flat_Lat_6450N_270kPa.tdx');
-end
+% use a Vulcan tydex with correct tire size and nominal pressure
+tdxFile = fullfile(rootDir, "stiffness", 'A-27348_TotalStiff_Flat_Tors_11344N_270kPa.tdx');
 
 brakingFolder = fullfile(rootDir, "braking");
 corneringFolder = fullfile(rootDir, "cornering");
@@ -39,6 +32,7 @@ tdxData = read_tydex(tdxTemp);
 figure; hold on;
 strFilt = 'Braking_*.csv';
 dirPat = dir(fullfile(brakingFolder, strFilt));
+
 for k = 1:numel(dirPat)
     % read csv
     Tab = readtable(fullfile(dirPat(k).folder, dirPat(k).name));
@@ -90,9 +84,10 @@ for k = 1:numel(dirPat)
 
     FZ = tdxData.constants.fzw.value;
     FZ_1st = floor(FZ / 1000);
-    FZ_2nd = floor((FZ - FZ_1st*1000) / 100);
+    FZ_2nd = floor((FZ - FZ_1st * 1000) / 100);
 
     IA = tdxData.constants.inclangl.value;
+
     if IA == 0
         strIA = '';
     else
@@ -117,6 +112,7 @@ figure; hold on;
 
 strFilt = 'cornering_*.csv';
 dirPat = dir(fullfile(corneringFolder, strFilt));
+
 for k = 1:numel(dirPat)
     % read csv
     Tab = readtable(fullfile(dirPat(k).folder, dirPat(k).name));
@@ -128,17 +124,17 @@ for k = 1:numel(dirPat)
         end
 
         % get SA_plysteer
-        pp = polyfit(Tab.FY(end-3:end), Tab.Slip(end-3:end), 1);
+        pp = polyfit(Tab.FY(end - 3:end), Tab.Slip(end - 3:end), 1);
         SA_plysteer = pp(end);
 
         % zero camber case, flip data to full curve
-        Slip_full = [Tab.Slip(1:end-1); -flip(Tab.Slip) + 2 * SA_plysteer];
-        FX_full = [Tab.FX(1:end-1); -flip(Tab.FX)];
-        FY_full = [Tab.FY(1:end-1); -flip(Tab.FY)];
-        FZ_full = [Tab.FZ(1:end-1); flip(Tab.FZ)];
-        MX_full = [Tab.MX(1:end-1); -flip(Tab.MX)];
-        MZ_full = [Tab.MZ(1:end-1); -flip(Tab.MZ)];
-        LR_full = [Tab.LR(1:end-1); flip(Tab.LR)];
+        Slip_full = [Tab.Slip(1:end - 1); -flip(Tab.Slip) + 2 * SA_plysteer];
+        FX_full = [Tab.FX(1:end - 1); -flip(Tab.FX)];
+        FY_full = [Tab.FY(1:end - 1); -flip(Tab.FY)];
+        FZ_full = [Tab.FZ(1:end - 1); flip(Tab.FZ)];
+        MX_full = [Tab.MX(1:end - 1); -flip(Tab.MX)];
+        MZ_full = [Tab.MZ(1:end - 1); -flip(Tab.MZ)];
+        LR_full = [Tab.LR(1:end - 1); flip(Tab.LR)];
     else
         Slip_full = Tab.Slip;
         FX_full = Tab.FX;
@@ -196,9 +192,10 @@ for k = 1:numel(dirPat)
 
     FZ = tdxData.constants.fzw.value;
     FZ_1st = floor(FZ / 1000);
-    FZ_2nd = floor((FZ - FZ_1st*1000) / 100);
+    FZ_2nd = floor((FZ - FZ_1st * 1000) / 100);
 
     IA = tdxData.constants.inclangl.value;
+
     if IA == 0
         strIA = '';
     else

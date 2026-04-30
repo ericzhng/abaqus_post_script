@@ -7,9 +7,9 @@
 % NOTE: Ensure 'sample_data.csv' is in the same directory as this script,
 % or provide the full file path.
 filenames = {'Braking_Sweep_2075N_-0deg.csv'
-    'Braking_Sweep_4150N_-0deg.csv'
-    'Braking_Sweep_6225N_0deg.csv'
-    'Braking_Sweep_6225N_-5deg.csv'};
+             'Braking_Sweep_4150N_-0deg.csv'
+             'Braking_Sweep_6225N_0deg.csv'
+             'Braking_Sweep_6225N_-5deg.csv'};
 
 % ---
 figure; % Open a new figure window
@@ -23,6 +23,7 @@ box on;
 % and assigns the column names as variable names.
 for k = 1:numel(filenames)
     filename = filenames{k};
+
     try
         T = readtable(filename);
         disp(['Successfully loaded file: ' filename]);
@@ -52,4 +53,4 @@ end
 title(['Plot of ' y_col_name ' vs ' x_col_name]);
 xlabel(x_col_name, 'Interpreter', 'none'); % Use 'none' to handle underscores in names
 ylabel(y_col_name, 'Interpreter', 'none');
-legend(filenames, Interpreter="none")
+legend(filenames, Interpreter = "none")
